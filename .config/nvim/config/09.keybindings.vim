@@ -1,5 +1,4 @@
 "========== GENERAL ==========
-inoremap <esc> <nop>
 nnoremap <esc> :let @/=""<cr>
 inoremap jk <esc>
 tnoremap jk <C-\><C-n>
@@ -9,7 +8,7 @@ inoremap PP <c-r>0
 
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<CR>"
 inoremap <Tab> <C-n>
-inoremap <silent><expr> § pumvisible() ? "\<C-n>" : "\<C-\>\<C-O>:call ncm2#manual_trigger()\<CR>"
+inoremap <silent><expr> <esc> pumvisible() ? "\<C-n>" : "\<C-\>\<C-O>:call ncm2#manual_trigger()\<CR>"
 
 onoremap il :<c-u>normal! _vg_<cr>
 vnoremap P "0p
