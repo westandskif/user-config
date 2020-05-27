@@ -1,0 +1,100 @@
+#!/bin/bash
+
+source ./_base
+
+while (( "$#" )); do
+  case "$1" in
+    --output-executable-path)
+      SCRIPT_PATH=$2
+      shift 2
+      ;;
+    --python-version)
+      PYTHON_VERSION=$2
+      shift 2
+      ;;
+    --force)
+      FORCE_REINSTALL=1
+      shift 1
+      ;;
+    -*|--*=)
+      echo "Error: Unsupported flag $1" >&2
+      exit 1
+      ;;
+    # *) # preserve positional arguments
+    #   PARAMS="$PARAMS $1"
+    #   shift
+    #   ;;
+  esac
+done
+
+install_system_libraries()
+{
+    sudo pacman -S -q aspell ripgrep ctags fd curl fzf pyenv
+}
+
+_nvim_installed=0
+install_nvim_if_not_exists()
+{
+    if [[ -d $NVIM_CONFIG ]] && [[ ${FORCE_REINSTALL:-0} -eq 0 ]] ; then
+        echo "nvim already installed $NVIM_CONFIG"
+        return
+    fi
+    echo "Installing nvim"
+    _nvim_installed=1
+    curl \
+        -fLo \
+        "$NVIM_ROOT/nvim-linux64.tar.gz" \
+        https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+    tar -xzf "$NVIM_ROOT/nvim-linux64.tar.gz" -C "$NVIM_ROOT"
+    rm "$NVIM_ROOT/nvim-linux64.tar.gz"
+
+    curl -fLo \
+        "$NVIM_ROOT/nvim/site/autoload/plug.vim" \
+        --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+}
+
+install_nvim_python()
+{
+    pyenv install -s $PYTHON_VERSION
+    pyenv rehash
+    PYTHON_PYENV_DIR=$(pyenv prefix $PYTHON_VERSION)
+    PYENV_ENVS_DIR=$(dirname $PYTHON_PYENV_DIR)
+    VENV_DIR="$PYENV_ENVS_DIR/nvim_$PYTHON_VERSION"
+
+    if [[ ! -d "$VENV_DIR" ]]; then
+        $PYTHON_PYENV_DIR/bin/pip install virtualenv
+        $PYTHON_PYENV_DIR/bin/virtualenv \
+            -p $PYTHON_PYENV_DIR/bin/python \
+            $VENV_DIR
+    fi
+
+    $VENV_DIR/bin/python -m pip install -U \
+        pynvim pyls pyls-isort pyls-black flake8
+}
+
+
+make_nvim_executable()
+{
+    echo "Create executable nvim with python binary set"
+    local script_dir=$(dirname "$SCRIPT_PATH")
+    mkdir -p $script_dir
+    echo "#!/bin/bash
+    source $VENV_DIR/bin/activate \
+        && export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \
+        && export XDG_DATA_HOME=$XDG_DATA_HOME \
+        && $NVIM_ROOT/nvim-linux64/bin/nvim \$@" > "$SCRIPT_PATH"
+    chmod 0777 $SCRIPT_PATH
+
+    if [[ $_nvim_installed -eq 1 ]]; then
+        echo "Installing nvim plugins"
+        $SCRIPT_PATH --headless +PlugInstall +PlugUpgrade +qa
+    fi
+
+    echo $SCRIPT_PATH
+}
+
+install_system_libraries
+install_nvim_if_not_exists
+install_nvim_python
+make_nvim_executable
