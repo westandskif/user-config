@@ -1,0 +1,19 @@
+#
+# Executes commands at the start of an interactive session.
+#
+# Authors:
+#   Sorin Ionescu <sorin.ionescu@gmail.com>
+#
+
+# Source Prezto.
+if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+fi
+
+# Customize to your needs...
+#
+export GDK_SCALE=2
+export GDK_DPI_SCALE=0.5
+alias user_config='/usr/bin/git --git-dir=$HOME/own/.user-dotfiles/ --work-tree=$HOME'
+alias ll='ls -la'
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

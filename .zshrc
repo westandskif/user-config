@@ -1,1 +1,0 @@
-/home/nik/.zprezto/runcoms/zshrc
