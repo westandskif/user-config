@@ -14,7 +14,10 @@ fi
 #
 export GDK_SCALE=2
 export GDK_DPI_SCALE=0.5
-alias user_config='/usr/bin/git --git-dir=$HOME/own/.user-dotfiles/ --work-tree=$HOME'
-alias host_config='/usr/bin/git --git-dir=$HOME/own/.p65-config/ --work-tree=/'
+export QT_FONT_DPI=240
+export QT_AUTO_SCREEN_SCALE_FACTOR=2.5
+
+alias user-config='/usr/bin/git --git-dir=$HOME/own/.user-dotfiles/ --work-tree=$HOME'
+alias host-config='/usr/bin/git --git-dir=$HOME/own/.p65-config/ --work-tree=/'
 alias ll='ls -la'
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

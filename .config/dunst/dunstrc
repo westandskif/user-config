@@ -412,8 +412,19 @@
 #    set_stack_tag = "volume"
 #
 [evolution]
-    appname = evolution
-	summary = "*"
-	script = ~/.config/dunst/ping_i3
+	appname = "evolution-mail-notification"
+	script = "~/.config/dunst/highlight_evolution"
+    urgency = normal
+
+[slack]
+	appname = "Slack"
+	script = "~/.config/dunst/highlight_slack"
+    urgency = normal
+
+[discord]
+	appname = "discord"
+	script = "~/.config/dunst/highlight_discord"
+    urgency = normal
+		
 
 # vim: ft=cfg
