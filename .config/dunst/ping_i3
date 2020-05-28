@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo $1
+wmctrl -r $1 -b add,demands_attention

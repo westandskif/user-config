@@ -16,6 +16,9 @@ set $mod Mod4
 
 # font pango:Meslo LG S DZ, Icons 10
 font pango:SF Pro Text, Icons 8
+default_border pixel 1px
+default_floating_border none
+
 
 # This font is widely installed, provides lots of unicode glyphs, right-to-left
 # text rendering and scalability on retina/hidpi displays (thanks to pango).
