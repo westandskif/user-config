@@ -1,0 +1,53 @@
+# [theme]
+# file = "~/.config/i3/i3status-rust.theme"
+
+#plain (default)
+# theme = "solarized-dark"
+# theme = "solarized-light"
+# theme = "slick"
+# theme = "modern"
+# theme = "bad-wolf"
+# theme = "gruvbox-light"
+# theme = "space-villain"
+
+[theme]
+name = "gruvbox-dark"
+[theme.overrides]
+good_bg = "#59590f"
+good_fg = "#ebdbb2"
+
+[icons]
+name = "awesome"
+
+[[block]]
+block = "memory"
+display_type = "memory"
+format_mem = "{Mup}%"
+format_swap = "{SUp}%"
+
+[[block]]
+block = "cpu"
+interval = 1
+format = "{barchart} {utilization}% {frequency}GHz"
+
+[[block]]
+block = "battery"
+interval = 5
+format = "{percentage}% {time}"
+device = "BAT1"
+
+[[block]]
+block = "backlight"
+
+[[block]]
+block = "sound"
+
+[[block]]
+block = "bluetooth"
+mac = "CC:21:19:A4:AE:73"
+label = " Buds"
+
+[[block]]
+block = "time"
+interval = 60
+format = "%a %m/%d %R"

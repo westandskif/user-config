@@ -194,14 +194,14 @@ bindsym $mod+r mode "resize"
 #         status_command i3status
 # }
 bar {
-    font pango:Meslo LG S DZ, FontAwesome 8
-    position top
-    status_command i3status-rs ~/.config/i3/status.toml
+    font pango:Meslo LG S DZ, Font Awesome 8
+    position bottom
+    status_command i3status-rs ~/.config/i3/i3status-rust.toml
     colors {
         separator #666666
         background #222222
-        statusline #dddddd
-        focused_workspace #0088CC #0088CC #ffffff
+        statusline #f0f0f0
+        focused_workspace #005580 #005580 #f0f0f0
         active_workspace #333333 #333333 #ffffff
         inactive_workspace #333333 #333333 #888888
         urgent_workspace #2f343a #900000 #ffffff
