@@ -29,7 +29,7 @@ done
 
 install_system_libraries()
 {
-    sudo pacman -S -q aspell ripgrep ctags fd curl fzf pyenv
+    sudo pacman -S -q aspell ripgrep ctags fd curl fzf pyenv bat
 }
 
 _nvim_installed=0

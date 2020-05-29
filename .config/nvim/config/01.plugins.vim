@@ -29,5 +29,8 @@ Plug 'wellle/context.vim'
 Plug 'ruslan-savina/spelling'
 
 Plug 'farfanoide/inflector.vim'
-call plug#end()
 
+Plug 'norcalli/nvim-colorizer.lua'
+
+
+call plug#end()
