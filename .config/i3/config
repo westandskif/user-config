@@ -30,9 +30,10 @@ default_floating_border none
 # xss-lock grabs a logind suspend inhibit lock and will use i3lock to lock the
 # screen before suspend. Use loginctl lock-session to lock your screen.
 # exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
-exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock-fancy -gpn
-bindsym $mod+Shift+Escape exec --no-startup-id i3lock-fancy & sleep 5 && xset dpms force off
-exec --no-startup-id exec xset dpms 600 7200 0
+exec --no-startup-id xss-lock -n /usr/lib/xsecurelock/dimmer -l -- xsecurelock
+bindsym $mod+Shift+Escape exec --no-startup-id "sleep 1 && xset dpms force standby"
+exec --no-startup-id exec xset s 300 5
+exec --no-startup-id exec xset dpms 300 7200 0
 
 # NetworkManager is the most popular way to manage wireless networks on Linux,
 # and nm-applet is a desktop environment-independent system tray GUI for it.
@@ -198,3 +199,4 @@ bar {
 exec --no-startup-id xrandr --dpi 288/eDP-1
 exec --no-startup-id light -S 60
 exec --no-startup-id picom -b
+exec --no-startup-id feh --bg-fill ~/Pictures/photo-of-starry-night-1421903.jpg
