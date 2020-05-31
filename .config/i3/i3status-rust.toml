@@ -20,15 +20,23 @@ good_fg = "#ebdbb2"
 name = "awesome"
 
 [[block]]
-block = "memory"
-display_type = "memory"
-format_mem = "{Mup}%"
-format_swap = "{SUp}%"
-
-[[block]]
 block = "cpu"
 interval = 1
-format = "{barchart} {utilization}% {frequency}GHz"
+format = "{utilization}% {barchart} {frequency}GHz"
+
+[[block]]
+block = "custom"
+interval = 5
+command = ''' cat /sys/class/thermal/thermal_zone0/temp | awk '{printf("%.0f℃", $1/1000)}' '''
+# json = true
+# "echo '{\"icon\":\"temperature-low\",\"state\":\"Idle\", \"text\": \"Danger!\"}'"
+#  Idle, Info, Good, Warning, Critical
+
+[[block]]
+block = "memory"
+display_type = "memory"
+format_mem = "{Mug}G"
+format_swap = "{SUg}G"
 
 [[block]]
 block = "battery"
@@ -45,7 +53,12 @@ block = "sound"
 [[block]]
 block = "bluetooth"
 mac = "CC:21:19:A4:AE:73"
-label = " Buds"
+label = ""
+
+[[block]]
+block = "custom_dbus"
+name = "CurrentKeyboardLayout"
+# qdbus i3.status.rs /CurrentKeyboardLayout i3.status.rs.SetStatus us
 
 [[block]]
 block = "time"
