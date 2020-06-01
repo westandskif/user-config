@@ -26,7 +26,7 @@ format = "{utilization}% {barchart} {frequency}GHz"
 
 [[block]]
 block = "custom"
-interval = 5
+interval = 3
 command = ''' cat /sys/class/thermal/thermal_zone0/temp | awk '{printf("%.0f℃", $1/1000)}' '''
 # json = true
 # "echo '{\"icon\":\"temperature-low\",\"state\":\"Idle\", \"text\": \"Danger!\"}'"
