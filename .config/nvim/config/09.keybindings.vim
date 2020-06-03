@@ -68,7 +68,7 @@ let g:which_key_map.q.p = 'previous'
 let g:which_key_map.q.q = 'quit'
 let g:which_key_map.q.f = 'Filter lines with substr'
 let g:which_key_map.q.e = 'Exclude lines with substr'
-let g:which_key_map.q.g = 'populate from Git diff'
+let g:which_key_map.q.g = 'populate from git Diff'
 nnoremap <silent> <leader>qol  :lopen<CR>
 nnoremap <silent> <leader>qoq  :copen<CR>
 nnoremap <silent> <leader>qC :call setqflist(getloclist(winnr()))<CR>

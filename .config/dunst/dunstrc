@@ -126,7 +126,7 @@
     #   %n  progress value if set without any extra characters
     #   %%  Literal %
     # Markup is allowed
-    format = "<b>%s</b>\n%b"
+    format = "<b>%a</b> - %s\n%b"
 
     # Alignment of message text.
     # Possible values are "left", "center" and "right".
@@ -160,7 +160,7 @@
     ### Icons ###
 
     # Align icons left/right/off
-    icon_position = off
+    icon_position = left
 
     # Scale larger icons down to this size, set to 0 to disable
     max_icon_size = 32
@@ -282,7 +282,7 @@
     #icon = /path/to/icon
 
 [urgency_normal]
-    background = "#285577"
+    background = "#222222"
     foreground = "#ffffff"
     timeout = 10
     # Icon for notifications with normal urgency, uncomment to enable
@@ -425,6 +425,5 @@
 	appname = "discord"
 	script = "~/.config/dunst/highlight_discord"
     urgency = normal
-		
 
 # vim: ft=cfg

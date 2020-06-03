@@ -215,3 +215,15 @@ exec --no-startup-id xrandr --dpi 288/eDP-1
 exec --no-startup-id light -S 60
 exec --no-startup-id picom -b
 exec --no-startup-id feh --bg-fill ~/Pictures/photo-of-starry-night-1421903.jpg
+
+assign [class="^Chromium$"] 3
+assign [class="^Slack$"] 4
+assign [class="^Evolution$"] 5
+assign [class="^discord$"] 6
+assign [class="^Skype$"] 6
+assign [class="^TelegramDesktop$"] 7
+bindsym $mod+Mod1+3 exec --no-startup-id chromium
+bindsym $mod+Mod1+4 exec --no-startup-id slack
+bindsym $mod+Mod1+5 exec --no-startup-id evolution
+bindsym $mod+Mod1+6 exec --no-startup-id discord; exec --no-startup-id skypeforlinux
+bindsym $mod+Mod1+7 exec --no-startup-id telegram-desktop

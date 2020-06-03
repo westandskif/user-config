@@ -50,10 +50,10 @@ block = "backlight"
 [[block]]
 block = "sound"
 
-[[block]]
-block = "bluetooth"
-mac = "CC:21:19:A4:AE:73"
-label = ""
+# [[block]]
+# block = "bluetooth"
+# mac = "CC:21:19:A4:AE:73"
+# label = ""
 
 [[block]]
 block = "custom_dbus"
