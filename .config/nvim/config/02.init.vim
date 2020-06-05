@@ -1,12 +1,6 @@
 autocmd ColorScheme * highlight SpellBad cterm=underline gui=underline ctermfg=243 guifg=#727272
 colorscheme space_vim_theme
 set termguicolors
-lua << END
-require 'colorizer'.setup({
-  'css';
-  'javascript';
-}, { mode = 'background' })
-END
 set hlsearch incsearch
 set number
 set nowrap

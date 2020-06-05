@@ -30,7 +30,8 @@ Plug 'ruslan-savina/spelling'
 
 Plug 'farfanoide/inflector.vim'
 
-Plug 'norcalli/nvim-colorizer.lua'
+Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
+let g:Hexokinase_ftEnabled = ['less']
 
 
 call plug#end()
