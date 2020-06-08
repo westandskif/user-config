@@ -215,6 +215,7 @@ exec --no-startup-id xrandr --dpi 288/eDP-1
 exec --no-startup-id light -S 60
 exec --no-startup-id picom -b
 exec --no-startup-id feh --bg-fill ~/Pictures/photo-of-starry-night-1421903.jpg
+exec --no-startup-id blueberry-tray
 
 assign [class="^Chromium$"] 3
 assign [class="^Slack$"] 4
