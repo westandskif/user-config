@@ -1,0 +1,29 @@
+#!/bin/bash
+set -o nounset
+set -o errexit
+
+
+MIC_CAPTURE=46
+MIC_DIGITAL=93
+
+reset_mic_settings()
+{
+    amixer -c 0 sget Capture | grep "Capture $MIC_CAPTURE" > /dev/null && _ex=0 || _ex=$?
+    if [[ $_ex -eq 1 ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') resetting mic Capture to $MIC_CAPTURE"
+        amixer -c 0 sset Capture $MIC_CAPTURE > /dev/null
+    fi
+    amixer -c 0 sget Digital | grep "Capture $MIC_DIGITAL" > /dev/null && _ex=0 || _ex=$?
+    if [[ $_ex -eq 1 ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') resetting mic Digital to $MIC_DIGITAL"
+        amixer -c 0 sset Digital $MIC_DIGITAL > /dev/null
+    fi
+}
+
+reset_mic_settings
+
+exec 3< <(stdbuf -o0 alsactl monitor)
+while : ; do
+    read -r -t 600 -u 3 line && _ex=0 || _ex=$?
+    reset_mic_settings
+done

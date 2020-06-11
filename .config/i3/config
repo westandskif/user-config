@@ -40,8 +40,8 @@ exec --no-startup-id xset dpms 300 7200 0
 exec --no-startup-id nm-applet
 exec --no-startup-id dunst
 
-bindsym Caps_Lock exec --no-startup-id "sleep 0.1 && /home/nik/.config/i3/i3status-keyboard-layout"
-exec_always --no-startup-id "sleep 5 && /home/nik/.config/i3/i3status-keyboard-layout"
+bindsym Caps_Lock exec --no-startup-id "sleep 0.1 && ~/.config/i3/i3status-keyboard-layout"
+exec_always --no-startup-id "sleep 5 && ~/.config/i3/i3status-keyboard-layout"
 
 
 # Use pactl to adjust volume in PulseAudio.
@@ -216,6 +216,8 @@ exec --no-startup-id light -S 60
 exec --no-startup-id picom -b
 exec --no-startup-id feh --bg-fill ~/Pictures/photo-of-starry-night-1421903.jpg
 exec --no-startup-id blueberry-tray
+exec --no-startup-id ~/.config/i3/alsa-mic-config-keeper
+exec_always --no-startup-id "sleep 5 && /home/nik/.config/i3/i3status-keyboard-layout"
 
 assign [class="^Chromium$"] 3
 assign [class="^Slack$"] 4
