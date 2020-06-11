@@ -62,7 +62,7 @@ install_nvim_python()
     pyenv rehash
     PYTHON_PYENV_DIR=$(pyenv prefix $PYTHON_VERSION)
     PYENV_ENVS_DIR=$(dirname $PYTHON_PYENV_DIR)
-    VENV_DIR="$PYENV_ENVS_DIR/nvim_$PYTHON_VERSION"
+    VENV_DIR="$PYENV_ENVS_DIR/nvim-$PYTHON_VERSION"
 
     if [[ ! -d "$VENV_DIR" ]]; then
         $PYTHON_PYENV_DIR/bin/pip install virtualenv
@@ -81,11 +81,21 @@ make_nvim_executable()
     echo "Create executable nvim with python binary set"
     local script_dir=$(dirname "$SCRIPT_PATH")
     mkdir -p $script_dir
-    echo "#!/bin/bash
-    source $VENV_DIR/bin/activate \
-        && export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \
-        && export XDG_DATA_HOME=$XDG_DATA_HOME \
-        && $NVIM_ROOT/nvim-linux64/bin/nvim \$@" > "$SCRIPT_PATH"
+
+    _script="#!/bin/bash
+set -o nounset
+set -o errexit
+
+if [[ \${PYTHONPATH:-\"\"} ]]; then
+    export PYTHONPATH=\"\$(find $VENV_DIR -type d -name 'site-packages'):\$PYTHONPATH\"
+fi
+
+source $VENV_DIR/bin/activate \\
+    && export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
+    && export XDG_DATA_HOME=$XDG_DATA_HOME \\
+    && $NVIM_ROOT/nvim-linux64/bin/nvim \$@\n"
+
+    printf "$_script" > $SCRIPT_PATH
     chmod 0777 $SCRIPT_PATH
 
     if [[ $_nvim_installed -eq 1 ]]; then
