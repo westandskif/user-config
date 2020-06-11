@@ -1,10 +1,12 @@
-personal_ws-1.1 en 36 
+personal_ws-1.1 en 39 
 Async
 analytics
 api
 aprenita
 args
 async
+attr
+attrs
 captcha
 cls
 conf
@@ -28,6 +30,7 @@ pytz
 redis
 serializer
 serializers
+setattr
 sql
 sqlalchemy
 str

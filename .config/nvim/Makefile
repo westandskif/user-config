@@ -5,7 +5,7 @@ AUTOGEN_SCRIPTS_DIR := ${DIR}/autogen_scripts
 # DEFAULT ONE
 nvim:
 	./install_nvim \
-		--output-executable-path ${AUTOGEN_SCRIPTS_DIR}/nvim_python_3.7.6 \
+		--output-executable-path ${AUTOGEN_SCRIPTS_DIR}/nvim-python-3.7.6 \
 		--python-version 3.7.6 # --force
-	sudo ln -sf ${AUTOGEN_SCRIPTS_DIR}/nvim_python_3.7.6 /usr/local/bin/nvim
+	sudo ln -sf ${AUTOGEN_SCRIPTS_DIR}/nvim-python-3.7.6 /usr/local/bin/nvim
 

@@ -1,6 +1,9 @@
 #!/bin/bash
 
-source ./_base
+set -o nounset
+set -o errexit
+
+source "$(dirname $0)/_base"
 
 while (( "$#" )); do
   case "$1" in
@@ -44,13 +47,14 @@ if [[ ! -z ${DOCKER_IMAGE:-""} ]]; then
 fi
 
 echo "installing nvim with python $PYTHON_VERSION"
-NVIM_BASE_EXECUTABLE="$AUTOGEN_SCRIPTS_DIR/nvim_python_$PYTHON_VERSION"
-./install_nvim \
+NVIM_BASE_EXECUTABLE="$AUTOGEN_SCRIPTS_DIR/nvim-python-$PYTHON_VERSION"
+"$NVIM_CONFIG/install_nvim" \
 	--output-executable-path $NVIM_BASE_EXECUTABLE \
 	--python-version $PYTHON_VERSION # --force
 
 
 echo "Create executable nvim with python binary set"
+echo "$AUTOGEN_SCRIPTS_DIR"
 mkdir -p $AUTOGEN_SCRIPTS_DIR
 NVIM_PROJECT_EXECUTABLE="$AUTOGEN_SCRIPTS_DIR/$NVIM_EXECUTABLE_NAME"
 echo "#!/bin/bash

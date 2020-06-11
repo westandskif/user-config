@@ -10,7 +10,6 @@ NVIM_ROOT="$XDG_DATA_HOME/nvim"
 NVIM_CONFIG="$XDG_CONFIG_HOME/nvim"
 AUTOGEN_SCRIPTS_DIR="$NVIM_CONFIG/autogen_scripts"
 
-
 python_version_from_docker_image()
 {
     echo "getting python version from docker image: $DOCKER_IMAGE"

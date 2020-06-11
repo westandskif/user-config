@@ -1,6 +1,8 @@
 #!/bin/bash
 
-source ./_base
+set -o nounset
+set -o errexit
+source "$(dirname $0)/_base"
 
 while (( "$#" )); do
   case "$1" in
