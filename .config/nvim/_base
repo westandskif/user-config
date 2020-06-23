@@ -28,41 +28,47 @@ python_copy_docker_image_sitepackages()
     local docker_tmp_volume=tmp_for_sitepackager_copying
 
     # find sitepackages path in the docker image
-    local sitepackages_path=$(docker run --rm \
+    docker rm -f $docker_tmp_container > /dev/null 2>&1 || true 
+    local sitepackages_path=$(docker run \
         --name=${docker_tmp_container} \
         --entrypoint=bash "${DOCKER_IMAGE}" \
         -c "${get_python_sitepackages_path}")
 
-    # make sure a named volume is created and empty
-    docker volume inspect $docker_tmp_volume > /dev/null 2>&1 \
-        && exit_code=$? || exit_code=$?
-    if [[ $exit_code -eq 0 ]]; then
-        echo "dropping $docker_tmp_volume volume"
-        docker volume rm $docker_tmp_volume > /dev/null 2>&1
-        docker volume create $docker_tmp_volume > /dev/null 2>&1
-    fi
+    rm -rf $SITEPACKAGES_PATH/*
 
-    echo "copying data to named volume - $docker_tmp_volume"
-    docker run --rm \
-        --name=$docker_tmp_container \
-        -v $docker_tmp_volume:$sitepackages_path \
-        --entrypoint=bash "${DOCKER_IMAGE}" \
-        -c 'echo "success"'
+    docker cp "${docker_tmp_container}:${sitepackages_path}/." $SITEPACKAGES_PATH
+    docker rm -f $docker_tmp_container || true
 
-    local volume_data_path=$(docker volume inspect $docker_tmp_volume \
-        | jq -r ".[0].Mountpoint")
+    # # make sure a named volume is created and empty
+    # docker volume inspect $docker_tmp_volume > /dev/null 2>&1 \
+    #     && exit_code=$? || exit_code=$?
+    # if [[ $exit_code -eq 0 ]]; then
+    #     echo "dropping $docker_tmp_volume volume"
+    #     docker volume rm $docker_tmp_volume > /dev/null 2>&1
+    #     docker volume create $docker_tmp_volume > /dev/null 2>&1
+    # fi
 
-    sudo rsync \
-        --recursive \
-        --whole-file \
-        --ignore-existing \
-        --delete \
-        --owner \
-        --group \
-        --chown="$USER:$USER" \
-        --include="*/" \
-        --include="*.py" \
-        --exclude="*" \
-        $volume_data_path/ \
-        $SITEPACKAGES_PATH/
+    # echo "copying data to named volume - $docker_tmp_volume"
+    # docker run --rm \
+    #     --name=$docker_tmp_container \
+    #     -v $docker_tmp_volume:$sitepackages_path \
+    #     --entrypoint=bash "${DOCKER_IMAGE}" \
+    #     -c 'echo "success"'
+
+    # local volume_data_path=$(docker volume inspect $docker_tmp_volume \
+    #     | jq -r ".[0].Mountpoint")
+
+    # sudo rsync \
+    #     --recursive \
+    #     --whole-file \
+    #     --update \
+    #     --delete \
+    #     --owner \
+    #     --group \
+    #     --chown="$USER:$USER" \
+    #     --include="*/" \
+    #     --include="*.py" \
+    #     --exclude="*" \
+    #     $volume_data_path/ \
+    #     $SITEPACKAGES_PATH/
 }

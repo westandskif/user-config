@@ -39,12 +39,14 @@ let g:which_key_map.v = { 'name' : '☰ NVIM' }
 let g:which_key_map.v.e = 'Edit configs'
 let g:which_key_map.v.s = 'Source configs'
 let g:which_key_map.v.c = 'Cache session'
-let g:which_key_map.v.q = 'Quit and make session'
+let g:which_key_map.v.q = 'Quit'
+let g:which_key_map.v.Q = 'Quit and make session'
 let g:which_key_map.v.r = 'Restore session'
 nnoremap <leader>ve :tabnew ~/.config/nvim/config<cr>
 nnoremap <leader>vs :source ~/.config/nvim/init.vim<cr>
 nnoremap <leader>vc :mksession! .s.vim<cr>
-nnoremap <leader>vq :mksession! .s.vim<cr>:qa<cr>
+nnoremap <leader>vq :qa<cr>
+nnoremap <leader>vQ :mksession! .s.vim<cr>:qa<cr>
 nnoremap <leader>vr :source .s.vim<cr>
 
 
@@ -68,7 +70,7 @@ let g:which_key_map.q.p = 'previous'
 let g:which_key_map.q.q = 'quit'
 let g:which_key_map.q.f = 'Filter lines with substr'
 let g:which_key_map.q.e = 'Exclude lines with substr'
-let g:which_key_map.q.g = 'populate from git Diff'
+let g:which_key_map.q.d = 'populate from git Diff'
 nnoremap <silent> <leader>qol  :lopen<CR>
 nnoremap <silent> <leader>qoq  :copen<CR>
 nnoremap <silent> <leader>qC :call setqflist(getloclist(winnr()))<CR>
@@ -149,10 +151,13 @@ function RunRgWithOpts(command_suffix)
     let l:fzf_args = [
                 \l:command,
                 \1,
-                \fzf#vim#with_preview(
-                    \'right:40%',
-                    \'ctrl-p'
-                \),
+                \fzf#vim#with_preview({'options': [
+                    \'--info=inline',
+                    \'--preview-window',
+                    \'right:50%',
+                    \'--preview',
+                    \'bat --color=always --style=header,grid --line-range :300 {}'
+                \]}),
                 \0]
     return call('fzf#vim#grep', l:fzf_args)
 endfunction
@@ -187,7 +192,7 @@ endfunction
 
 nnoremap <leader>qf :call InputVimEscapedStr("lines to leave: ", "\"'")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 1)')<cr><cr>
 nnoremap <leader>qe :call InputVimEscapedStr("lines to exclude: ", "\"'")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 0)')<cr><cr>
-nnoremap <leader>qg :call setqflist([], ' ', {'lines' : systemlist('git diff --name-only --cached --diff-filter=AM'), 'efm':'%f'})<cr>:copen<cr>
+nnoremap <leader>qd :call setqflist([], ' ', {'lines' : systemlist('git diff --name-only --cached --diff-filter=AM'), 'efm':'%f'})<cr>:copen<cr>
 
 command! -bang -nargs=+ -complete=dir Rg call RunRgWithOpts(<q-args>)
 nnoremap <leader>sw :call InputVimEscapedStr(" words: ", "\"'")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F -w')<cr><cr>

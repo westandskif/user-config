@@ -9,5 +9,5 @@ let g:fzf_action = {
   \ 'ctrl-x': 'split',
   \ 'ctrl-v': 'vsplit' }
 
-let $FZF_DEFAULT_OPTS="--bind ctrl-a:select-all,ctrl-f:preview-page-down,ctrl-b:preview-page-up --ansi --preview-window 'right:60%' --preview 'bat --color=always --style=header,grid --line-range :300 {}'"
+let $FZF_DEFAULT_OPTS="--bind ctrl-a:select-all,ctrl-f:preview-page-down,ctrl-b:preview-page-up --ansi"
 let $FZF_DEFAULT_COMMAND='fd --type f --no-ignore --exclude=__pycache__ --exclude=uploaded_files --exclude="ui/dist" --exclude="build/"'

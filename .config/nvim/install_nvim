@@ -72,7 +72,7 @@ install_nvim_python()
     fi
 
     $VENV_DIR/bin/python -m pip install -U \
-        pynvim pyls pyls-isort pyls-black flake8 pylint
+        pynvim pyls pyls-isort pyls-black flake8 pylint autoflake
 }
 
 

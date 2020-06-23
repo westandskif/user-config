@@ -67,7 +67,7 @@ function! RefreshSitePackageTags()
     let l:sitepackages = systemlist('python -', l:text)
     for path in l:sitepackages
         if stridx(&tags, path) == -1
-            let &tags = path."/tags,".&tags
+            let &tags = &tags.path."/tags,"
         endif
     endfor
     return l:sitepackages
