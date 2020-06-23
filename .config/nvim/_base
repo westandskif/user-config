@@ -28,7 +28,7 @@ python_copy_docker_image_sitepackages()
     local docker_tmp_volume=tmp_for_sitepackager_copying
 
     # find sitepackages path in the docker image
-    docker rm -f $docker_tmp_container > /dev/null 2>&1 || true 
+    docker rm -f $docker_tmp_container > /dev/null 2>&1 || true
     local sitepackages_path=$(docker run \
         --name=${docker_tmp_container} \
         --entrypoint=bash "${DOCKER_IMAGE}" \
@@ -39,6 +39,9 @@ python_copy_docker_image_sitepackages()
     docker cp "${docker_tmp_container}:${sitepackages_path}/." $SITEPACKAGES_PATH
     docker rm -f $docker_tmp_container || true
 
+    #######################################
+    ### COPYING VIA NAMED VOLUMES BELOW ###
+    #######################################
     # # make sure a named volume is created and empty
     # docker volume inspect $docker_tmp_volume > /dev/null 2>&1 \
     #     && exit_code=$? || exit_code=$?
@@ -49,6 +52,7 @@ python_copy_docker_image_sitepackages()
     # fi
 
     # echo "copying data to named volume - $docker_tmp_volume"
+    # docker rm -f $docker_tmp_container > /dev/null 2>&1 || true
     # docker run --rm \
     #     --name=$docker_tmp_container \
     #     -v $docker_tmp_volume:$sitepackages_path \
