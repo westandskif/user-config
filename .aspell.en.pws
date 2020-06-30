@@ -1,4 +1,4 @@
-personal_ws-1.1 en 69 
+personal_ws-1.1 en 75 
 Async
 CHF
 GBP
@@ -27,6 +27,7 @@ django
 elif
 exc
 expr
+fmt
 func
 funcs
 gte
@@ -36,6 +37,7 @@ incr
 incrby
 init
 integrations
+irr
 isinstance
 isnull
 iterable
@@ -47,6 +49,7 @@ mca
 mixin
 mrpa
 mut
+num
 objs
 originations
 paginator
@@ -63,8 +66,11 @@ sqlalchemy
 stmt
 stmts
 str
+strftime
 trunc
 tzinfo
 usd
 utc
 utils
+xirr
+xlsxwriter

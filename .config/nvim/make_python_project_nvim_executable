@@ -21,11 +21,14 @@ while (( "$#" )); do
       PYTHON_VERSION=$2
       shift 2
       ;;
-    --from-sitepackages-path)
-      SITEPACKAGES_PATH=$2
+    --from-venv-path)
+      VENV_PATH=$2
       shift 2
       ;;
-
+    --force-nvim-reinstall)
+      FORCE_NVIM_REINSTALL="--force"
+      shift 1
+      ;;
     -*|--*=)
       echo "Error: Unsupported flag $1" >&2
       exit 1
@@ -37,12 +40,25 @@ while (( "$#" )); do
   esac
 done
 
+create_venv()
+{
+    pyenv install -s $PYTHON_VERSION
+    pyenv rehash
+    PYTHON_PYENV_DIR=$(pyenv prefix $PYTHON_VERSION)
+    PYENV_ENVS_DIR=$(dirname $PYTHON_PYENV_DIR)
+    VENV_PATH="$PYENV_ENVS_DIR/nvim-$PYTHON_VERSION-$NVIM_EXECUTABLE_NAME"
+
+    rm -rf $VENV_PATH
+    $PYTHON_PYENV_DIR/bin/pip install virtualenv
+    $PYTHON_PYENV_DIR/bin/virtualenv \
+        -p $PYTHON_PYENV_DIR/bin/python \
+        $VENV_PATH
+}
 
 if [[ ! -z ${DOCKER_IMAGE:-""} ]]; then
     python_version_from_docker_image
-
-    SITEPACKAGES_PATH="$(pyenv root)/sitepackages-copies/$NVIM_EXECUTABLE_NAME"
-    mkdir -p $SITEPACKAGES_PATH
+    create_venv
+    SITEPACKAGES_PATH=$(find $VENV_PATH -type d -name 'site-packages')
     python_copy_docker_image_sitepackages
 fi
 
@@ -50,16 +66,19 @@ echo "installing nvim with python $PYTHON_VERSION"
 NVIM_BASE_EXECUTABLE="$AUTOGEN_SCRIPTS_DIR/nvim-python-$PYTHON_VERSION"
 "$NVIM_CONFIG/install_nvim" \
 	--output-executable-path $NVIM_BASE_EXECUTABLE \
-	--python-version $PYTHON_VERSION # --force
+	--python-version $PYTHON_VERSION "${FORCE_NVIM_REINSTALL:-''}"
 
 
 echo "Create executable nvim with python binary set"
 mkdir -p $AUTOGEN_SCRIPTS_DIR
 NVIM_PROJECT_EXECUTABLE="$AUTOGEN_SCRIPTS_DIR/$NVIM_EXECUTABLE_NAME"
 
-PYTHONPATH=${PYTHONPATH:=""}
 _script="#!/bin/bash
-export PYTHONPATH=$PYTHONPATH:$SITEPACKAGES_PATH \\
+set -o nounset
+set -o errexit
+
+export PYTHONPATH=\"\${PYTHONPATH:-\"\"}:${PYTHONPATH:-""}:$(find $VENV_PATH -type d -name 'site-packages')\"
+source $VENV_PATH/bin/activate \\
     && $NVIM_BASE_EXECUTABLE \$@\n"
 printf "$_script" > $NVIM_PROJECT_EXECUTABLE
 

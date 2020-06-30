@@ -9,14 +9,14 @@ nvim:
 		--python-version 3.7.6 # --force
 	sudo ln -sf ${AUTOGEN_SCRIPTS_DIR}/nvim-python-3.7.6 /usr/local/bin/nvim
 
-nvim_convtools:
+nvim-convtools:
 	PYTHONPATH=/home/nik/own/convtools/src \
 	./make_python_project_nvim_executable \
 		--executable-name nvim-convtools \
 		--python-version 3.6.10 \
-		--from-sitepackages-path ~/.pyenv/versions/convtools/lib/python3.6/site-packages
+		--from-venv-path ~/.pyenv/versions/convtools
 
-nvim_aprenita:
+nvim-aprenita:
 	./make_python_project_nvim_executable \
 		--executable-name nvim-aprenita \
-		--from-docker-image aprenita-infrastructure_backend
+		--from-docker-image aprenita-infrastructure_backend #--force-nvim-reinstall

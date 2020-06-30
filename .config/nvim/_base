@@ -34,8 +34,6 @@ python_copy_docker_image_sitepackages()
         --entrypoint=bash "${DOCKER_IMAGE}" \
         -c "${get_python_sitepackages_path}")
 
-    rm -rf $SITEPACKAGES_PATH/*
-
     docker cp "${docker_tmp_container}:${sitepackages_path}/." $SITEPACKAGES_PATH
     docker rm -f $docker_tmp_container || true
 

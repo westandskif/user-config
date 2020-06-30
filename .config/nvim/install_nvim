@@ -4,6 +4,7 @@ set -o nounset
 set -o errexit
 source "$(dirname $0)/_base"
 
+PARAMS=""
 while (( "$#" )); do
   case "$1" in
     --output-executable-path)
@@ -22,10 +23,10 @@ while (( "$#" )); do
       echo "Error: Unsupported flag $1" >&2
       exit 1
       ;;
-    # *) # preserve positional arguments
-    #   PARAMS="$PARAMS $1"
-    #   shift
-    #   ;;
+    *) # preserve positional arguments
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
   esac
 done
 
@@ -37,7 +38,7 @@ install_system_libraries()
 _nvim_installed=0
 install_nvim_if_not_exists()
 {
-    if [[ -d $NVIM_CONFIG ]] && [[ ${FORCE_REINSTALL:-0} -eq 0 ]] ; then
+    if [[ -d $NVIM_ROOT ]] && [[ ${FORCE_REINSTALL:-0} -eq 0 ]] ; then
         echo "nvim already installed $NVIM_CONFIG"
         return
     fi
@@ -72,7 +73,7 @@ install_nvim_python()
     fi
 
     $VENV_DIR/bin/python -m pip install -U \
-        pynvim pyls pyls-isort pyls-black flake8 pylint autoflake
+        pynvim python-language-server pyls-isort pyls-black flake8 pylint pylint-django autoflake
 }
 
 
@@ -86,12 +87,14 @@ make_nvim_executable()
 set -o nounset
 set -o errexit
 
-if [[ \${PYTHONPATH:-\"\"} ]]; then
-    export PYTHONPATH=\"\$(find $VENV_DIR -type d -name 'site-packages'):\$PYTHONPATH\"
+export PATH=\"${VENV_DIR}/bin:\$PATH\"
+
+if [[ -z \${PYTHONPATH:-\"\"} ]] && [[ -z \${VIRTUAL_ENV:-\"\"} ]]; then
+    export PYTHONPATH=\"${PYTHONPATH:-""}:$(find $VENV_DIR -type d -name 'site-packages')\"
+    source $VENV_DIR/bin/activate
 fi
 
-source $VENV_DIR/bin/activate \\
-    && export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
+export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
     && export XDG_DATA_HOME=$XDG_DATA_HOME \\
     && $NVIM_ROOT/nvim-linux64/bin/nvim \$@\n"
 
