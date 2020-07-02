@@ -87,11 +87,15 @@ make_nvim_executable()
 set -o nounset
 set -o errexit
 
-export PATH=\"${VENV_DIR}/bin:\$PATH\"
-
-if [[ -z \${PYTHONPATH:-\"\"} ]] && [[ -z \${VIRTUAL_ENV:-\"\"} ]]; then
+if [[ -z \${PYTHONPATH:-\"\"} ]]; then
     export PYTHONPATH=\"${PYTHONPATH:-""}:$(find $VENV_DIR -type d -name 'site-packages')\"
+fi
+
+if [[ -z \${VIRTUAL_ENV:-\"\"} ]]; then
     source $VENV_DIR/bin/activate
+else
+    export PATH=\"\$PATH:${VENV_DIR}/bin\"
+    export NVIM_PYTHON3_HOST_PROG=${VENV_DIR}/bin/python
 fi
 
 export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
