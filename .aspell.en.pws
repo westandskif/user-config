@@ -1,4 +1,4 @@
-personal_ws-1.1 en 80 
+personal_ws-1.1 en 89 
 Async
 CHF
 GBP
@@ -10,6 +10,7 @@ api
 aprenita
 arg
 args
+ascii
 async
 attr
 attrs
@@ -23,6 +24,8 @@ del
 deliverables
 dep
 deps
+desc
+dir
 django
 elif
 endif
@@ -32,8 +35,10 @@ expr
 fmt
 func
 funcs
+getcwd
 gte
 href
+https
 iap
 incr
 incrby
@@ -42,8 +47,10 @@ integrations
 irr
 isinstance
 isnull
+itemgetter
 iter
 iterable
+json
 kpi
 kwargs
 len
@@ -59,6 +66,7 @@ originations
 paginator
 param
 params
+postgres
 prog
 pytz
 qbo
@@ -74,6 +82,7 @@ str
 strftime
 trunc
 tzinfo
+url
 usd
 utc
 utils
