@@ -228,9 +228,11 @@ assign [class="^discord$"] 6
 assign [class="^Skype$"] 6
 assign [class="^TelegramDesktop$"] 7
 assign [class="^ViberPC$"] 7
+assign [class="^Spotify$"] 8
 # bindsym $mod+Mod1+3 exec --no-startup-id chromium
 bindsym $mod+Mod1+3 exec --no-startup-id brave --force-device-scale-factor=2.5
 bindsym $mod+Mod1+4 exec --no-startup-id slack
 bindsym $mod+Mod1+5 exec --no-startup-id evolution
 bindsym $mod+Mod1+6 exec --no-startup-id discord; exec --no-startup-id skypeforlinux
 bindsym $mod+Mod1+7 exec --no-startup-id telegram-desktop
+bindsym $mod+Mod1+8 exec --no-startup-id spotify
