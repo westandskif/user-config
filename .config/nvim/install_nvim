@@ -74,6 +74,29 @@ install_nvim_python()
 
     $VENV_DIR/bin/python -m pip install -U \
         pynvim python-language-server pyls-isort pyls-black flake8 pylint pylint-django autoflake
+    VENV_BINS_TO_EXPOSE=$VENV_DIR/bins-to-expose
+    mkdir -p $VENV_BINS_TO_EXPOSE
+    strings=(
+        "autoflake"
+        "black"
+        "flake8"
+        "isort"
+        "pyflakes"
+        "pylint"
+        "pyls"
+    )
+    for i in "${strings[@]}"; do
+        _script="#!/bin/bash
+set -o nounset
+set -o errexit
+
+if [[ $i == 'pylint' && ! -z \${SITEPACKAGES_PATH:-} ]]; then
+    export PYTHONPATH=\${PYTHONPATH:-}:\${SITEPACKAGES_PATH:-}
+fi
+exec $VENV_DIR/bin/$i \$@"
+        printf "$_script" > $VENV_BINS_TO_EXPOSE/$i
+        chmod 0777 $VENV_BINS_TO_EXPOSE/$i
+    done
 }
 
 
@@ -87,20 +110,16 @@ make_nvim_executable()
 set -o nounset
 set -o errexit
 
-if [[ -z \${PYTHONPATH:-\"\"} ]]; then
-    export PYTHONPATH=\"${PYTHONPATH:-""}:$(find $VENV_DIR -type d -name 'site-packages')\"
-fi
-
 if [[ -z \${VIRTUAL_ENV:-\"\"} ]]; then
     source $VENV_DIR/bin/activate
 else
-    export PATH=\"\$PATH:${VENV_DIR}/bin\"
+    export PATH=\"\$PATH:${VENV_BINS_TO_EXPOSE}\"
     export NVIM_PYTHON3_HOST_PROG=${VENV_DIR}/bin/python
 fi
 
 export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
     && export XDG_DATA_HOME=$XDG_DATA_HOME \\
-    && $NVIM_ROOT/nvim-linux64/bin/nvim \$@\n"
+    && exec $NVIM_ROOT/nvim-linux64/bin/nvim \$@\n"
 
     printf "$_script" > $SCRIPT_PATH
     chmod 0777 $SCRIPT_PATH

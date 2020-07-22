@@ -77,9 +77,9 @@ _script="#!/bin/bash
 set -o nounset
 set -o errexit
 
-export PYTHONPATH=\"\${PYTHONPATH:-\"\"}:${PYTHONPATH:-""}:$(find $VENV_PATH -type d -name 'site-packages')\"
+export SITEPACKAGES_PATH=$(find $VENV_PATH -type d -name 'site-packages')
 source $VENV_PATH/bin/activate \\
-    && $NVIM_BASE_EXECUTABLE \$@\n"
+    && exec $NVIM_BASE_EXECUTABLE \$@\n"
 printf "$_script" > $NVIM_PROJECT_EXECUTABLE
 
 chmod 0777 $NVIM_PROJECT_EXECUTABLE
