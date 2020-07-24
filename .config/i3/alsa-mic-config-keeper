@@ -8,15 +8,26 @@ MIC_DIGITAL=120
 
 reset_mic_settings()
 {
-    amixer -c 0 sget Capture | grep "Capture $MIC_CAPTURE" > /dev/null && _ex=0 || _ex=$?
+    amixer -c 0 sget Capture | grep -F "Capture $MIC_CAPTURE" > /dev/null && _ex=0 || _ex=$?
     if [[ $_ex -eq 1 ]]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') resetting mic Capture to $MIC_CAPTURE"
         amixer -c 0 sset Capture $MIC_CAPTURE > /dev/null
     fi
-    amixer -c 0 sget Digital | grep "Capture $MIC_DIGITAL" > /dev/null && _ex=0 || _ex=$?
+    amixer -c 0 sget Digital | grep -F "Capture $MIC_DIGITAL" > /dev/null && _ex=0 || _ex=$?
     if [[ $_ex -eq 1 ]]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') resetting mic Digital to $MIC_DIGITAL"
         amixer -c 0 sset Digital $MIC_DIGITAL > /dev/null
+    fi
+
+    amixer -c 0 sget 'Mic Boost' | grep -F "[0.00dB]" > /dev/null && _ex=0 || _ex=$?
+    if [[ $_ex -eq 1 ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') resetting mic Mic Boost to $MIC_DIGITAL"
+        amixer -c 0 sset 'Mic Boost' 0 > /dev/null
+    fi
+    amixer -c 0 sget 'Internal Mic Boost' | grep -F "[0.00dB]" > /dev/null && _ex=0 || _ex=$?
+    if [[ $_ex -eq 1 ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') resetting mic Internal Mic Boost to $MIC_DIGITAL"
+        amixer -c 0 sset 'Internal Mic Boost' 0 > /dev/null
     fi
 }
 
