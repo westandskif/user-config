@@ -15,5 +15,6 @@ fi
 
 alias user-config='/usr/bin/git --git-dir=$HOME/own/.user-dotfiles/ --work-tree=$HOME'
 alias host-config='/usr/bin/git --git-dir=$HOME/own/.p65-config/ --work-tree=/'
+alias gw='WINEPREFIX=~/games/wine64 wine64 ~/games/gw2/Guild\ Wars\ 2/Gw2-64.exe'
 alias ll='ls -la'
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

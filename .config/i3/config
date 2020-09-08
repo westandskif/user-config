@@ -15,7 +15,7 @@ set $mod Mod4
 # is used in the bar {} block below.
 
 # font pango:Meslo LG S DZ, Icons 8
-font pango:SF Pro Text, Icons 8
+font pango:SF Pro Text, Font Awesome 5 Free, Icons 8
 default_border pixel 1px
 default_floating_border none
 
@@ -198,7 +198,7 @@ bindsym $mod+r mode "resize"
 #         status_command i3status
 # }
 bar {
-    font pango:Meslo LG S DZ, Font Awesome 8
+    font pango:Meslo LG S DZ, Font Awesome 5 Free, Font Awesome 5 Brands 8
     position bottom
     status_command i3status-rs ~/.config/i3/i3status-rust.toml
     colors {
@@ -214,7 +214,7 @@ bar {
 
 exec --no-startup-id xrandr --dpi 288/eDP-1
 exec --no-startup-id light -S 60
-exec --no-startup-id picom -b
+# exec --no-startup-id picom -b
 exec --no-startup-id feh --bg-fill ~/Pictures/photo-of-starry-night-1421903.jpg
 exec --no-startup-id blueberry-tray
 exec --no-startup-id ~/.config/i3/alsa-mic-config-keeper

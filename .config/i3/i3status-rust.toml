@@ -17,7 +17,7 @@ good_bg = "#59590f"
 good_fg = "#ebdbb2"
 
 [icons]
-name = "awesome"
+name = "awesome5"
 
 [[block]]
 block = "cpu"

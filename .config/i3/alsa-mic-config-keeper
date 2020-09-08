@@ -3,8 +3,8 @@ set -o nounset
 set -o errexit
 
 
-MIC_CAPTURE=63
-MIC_DIGITAL=120
+MIC_CAPTURE=56
+MIC_DIGITAL=60
 
 reset_mic_settings()
 {
