@@ -5,8 +5,8 @@ set completeopt=noinsert,menuone,noselect
 
 let g:LanguageClient_diagnosticsEnable = 0
 let g:LanguageClient_serverCommands = {
+    \ 'rust': ['rust-analyzer'],
     \ 'python': ['pyls'],
-    \ 'rust': ['rls'],
     \ }
 let g:LanguageClient_loggingFile =  expand('~/.local/share/nvim/LanguageClient.log')
 let g:LanguageClient_serverStderr = expand('~/.local/share/nvim/LanguageServer.log')

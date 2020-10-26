@@ -36,3 +36,7 @@ let g:context_enabled = 0
 let g:context_presenter = 'preview'
 let g:loaded_sql_completion = 0
 let g:python_highlight_func_calls = 0
+
+let g:qf_modifiable = 1
+let g:qf_join_changes = 1
+let g:qf_write_changes = 0

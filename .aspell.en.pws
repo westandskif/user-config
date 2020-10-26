@@ -1,4 +1,4 @@
-personal_ws-1.1 en 92 
+personal_ws-1.1 en 98 
 Async
 CHF
 GBP
@@ -30,6 +30,8 @@ dir
 django
 elif
 endif
+enum
+enums
 exc
 exe
 expr
@@ -39,6 +41,7 @@ funcs
 getcwd
 gte
 href
+http
 https
 iap
 incr
@@ -56,9 +59,11 @@ kpi
 kwargs
 len
 lte
+mailto
 mca
 mixin
 mrpa
+msg
 mut
 num
 nvim
@@ -78,6 +83,7 @@ setattr
 sku
 sql
 sqlalchemy
+src
 stmt
 stmts
 str

@@ -15,6 +15,29 @@ fi
 
 alias user-config='/usr/bin/git --git-dir=$HOME/own/.user-dotfiles/ --work-tree=$HOME'
 alias host-config='/usr/bin/git --git-dir=$HOME/own/.p65-config/ --work-tree=/'
-alias gw='WINEPREFIX=~/games/wine64 wine64 ~/games/gw2/Guild\ Wars\ 2/Gw2-64.exe'
+
+# sudo cpupower frequency-set -g performance
+# ps aux | grep "Gw2-64.exe" | grep -v grep | awk '{print $2}' | xargs sudo schedtool -F -p 40 -n -4
+# ps aux | grep "wineserver" | grep -v grep | awk '{print $2}' | xargs sudo schedtool -F -p 30 -n -4
+# ps aux | grep "pulseaudio" | grep -v grep | awk '{print $2}' | xargs sudo schedtool -F -p 25 -n -4
+
+# kill picom first
+# ps -eLf | grep wine | grep -v grep | awk '{print $4}' | xargs sudo schedtool -a 0xffffffff -R -p 25
+# ps -eLf | grep Gw2 | grep -v grep | awk '{print $4}' | xargs sudo schedtool -a 0xffffffff -R -p 20
+alias gw='export __GL_SHADER_DISK_CACHE_PATH=/tmp/gw-shaders; \
+  export DXVK_STATE_CACHE_PATH=/tmp/gw-dxvk-cache; \
+  mkdir -p $__GL_SHADER_DISK_CACHE_PATH; \
+  mkdir -p $DXVK_STATE_CACHE_PATH; \
+  WINEPREFIX=/home/nik/games/wine-2 \
+  WINEESYNC=1 \
+  __GL_THREADED_OPTIMIZATIONS=1 \
+  __GLX_VENDOR_LIBRARY_NAME=nvidia \
+  __NV_PRIME_RENDER_OFFLOAD=1 \
+  DXVK_LOG_LEVEL=none \
+  __GL_SYNC_TO_VBLANK=0 \
+  __GL_YIELD="NOTHING" \
+  wine64 /home/nik/games/gw2/gw2/Gw2-64.exe -dx9single'
 alias ll='ls -la'
+alias shu='shutdown -h now'
+alias ua-mirrors='sudo reflector --verbose --latest 25 --protocol http --country "Belarus,Russia,Germany,United States" --sort rate --save /etc/pacman.d/mirrorlist'
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

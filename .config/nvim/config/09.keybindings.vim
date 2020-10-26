@@ -38,16 +38,16 @@ let g:which_key_map =  {}
 let g:which_key_map.v = { 'name' : '☰ NVIM' }
 let g:which_key_map.v.e = 'Edit configs'
 let g:which_key_map.v.s = 'Source configs'
-let g:which_key_map.v.c = 'Cache session'
 let g:which_key_map.v.q = 'Quit'
+let g:which_key_map.v.C = 'Cache session'
 let g:which_key_map.v.Q = 'Quit and make session'
-let g:which_key_map.v.r = 'Restore session'
+let g:which_key_map.v.R = 'Restore session'
 nnoremap <leader>ve :tabnew ~/.config/nvim/config<cr>
 nnoremap <leader>vs :source ~/.config/nvim/init.vim<cr>
-nnoremap <leader>vc :mksession! .s.vim<cr>
 nnoremap <leader>vq :qa<cr>
+nnoremap <leader>vC :mksession! .s.vim<cr>
 nnoremap <leader>vQ :mksession! .s.vim<cr>:qa<cr>
-nnoremap <leader>vr :source .s.vim<cr>
+nnoremap <leader>vR :source .s.vim<cr>
 
 
 let g:which_key_map.m = {'name': '☰ MODE'}
@@ -198,7 +198,7 @@ command! -bang -nargs=+ -complete=dir Rg call RunRgWithOpts(<q-args>)
 nnoremap <leader>sw :call InputVimEscapedStr(" words: ", "\"'")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F -w')<cr><cr>
 nnoremap <leader>se :call InputVimEscapedStr(" exact: ", "\"'")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
 nnoremap <leader>ss :call InputVimEscapedStr("search: ", '"')<cr>:Rg "<c-r>i" --no-ignore-vcs -S <space>
-nnoremap <leader>sy /<c-r>=VimEscape(substitute(@0, '\n\+$', '', ''), ".* \\/")<cr>
+nnoremap <leader>sy /<c-r>=VimEscape(substitute(@+, '\n\+$', '', ''), ".* \\/")<cr>
 nnoremap <leader>si /<c-r>=InputVimEscapedStr("input: ", ".* \\/")<cr>
 nnoremap <leader>sb :Buffers<cr>
 nnoremap <leader>sf :FZF<cr>

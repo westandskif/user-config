@@ -15,6 +15,7 @@ Plug 'liuchengxu/vim-which-key'
 Plug 'sheerun/vim-polyglot'
 
 Plug 'Asheq/close-buffers.vim'
+Plug 'stefandtw/quickfix-reflector.vim'
 
 Plug 'neomake/neomake'
 Plug 'sbdchd/neoformat'
