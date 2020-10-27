@@ -165,23 +165,21 @@ endfunction
 function! RgExactSearch(type, ...)
   let sel_save = &selection
   let &selection = "inclusive"
-  let reg_save = @@
 
   if a:0  " Invoked from Visual mode, use '< and '> marks.
-    silent exe "normal! `<" . a:type . "`>y"
+    silent exe "normal! `<" . a:type . "`>\"iy"
   elseif a:type == 'line'
-    silent exe "normal! '[V']y"
+    silent exe "normal! '[V']\"iy"
   elseif a:type == 'block'
-    silent exe "normal! `[\<C-V>`]y"
+    silent exe "normal! `[\<C-V>`]\"iy"
   else
-    silent exe "normal! `[v`]y"
+    silent exe "normal! `[v`]\"iy"
   endif
 
-  let @i=VimEscape(@@, "\\$#%\"`")
+  let @i=VimEscape(@i, "\\$#%\"`")
   silent execute HistAddAndReturn('Rg "'.@i.'" --no-ignore-vcs -F')
 
   let &selection = sel_save
-  let @@ = reg_save
 endfunction
 
 command! -bang -nargs=+ -complete=dir Rg call RunRgWithOpts(<q-args>)
