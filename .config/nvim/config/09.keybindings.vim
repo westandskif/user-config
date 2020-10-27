@@ -116,12 +116,12 @@ let g:which_key_map.s.b = 'buffers'
 let g:which_key_map.s.e = 'exact'
 let g:which_key_map.s.f = 'files'
 let g:which_key_map.s.h = 'history'
-let g:which_key_map.s.i = 'from input'
 let g:which_key_map.s.r = 'custom Rg opts'
 let g:which_key_map.s.r = 'regexp'
 let g:which_key_map.s.t = 'tags'
 let g:which_key_map.s.w = 'exact words'
-let g:which_key_map.s.y = 'yanked'
+let g:which_key_map.s.p = '"+" locally'
+let g:which_key_map.s.P = '"+" globally'
 
 function InputStr(prompt_str)
     call inputsave()
@@ -140,12 +140,11 @@ function VimEscape(str, symbols_to_escape)
     endif
     return escape(l:str, l:_symbols_to_escape)
 endfunction
-function InputVimEscapedStr(prompt_str, more_symbols_to_escape)
-    let l:input_str = InputStr(a:prompt_str)
-    let l:input_str = VimEscape(l:input_str, "#%".a:more_symbols_to_escape)
-    let @i = l:input_str
-    return l:input_str
+function HistAddAndReturn(command_str)
+    :call histadd("cmd", a:command_str)
+    return a:command_str
 endfunction
+
 function RunRgWithOpts(command_suffix)
     let l:command = 'rg --column --line-number --no-heading --color=always --sort=path ' . a:command_suffix
     let l:fzf_args = [
@@ -160,10 +159,6 @@ function RunRgWithOpts(command_suffix)
                 \]}),
                 \0]
     return call('fzf#vim#grep', l:fzf_args)
-endfunction
-function HistAddAndReturn(command_str)
-    :call histadd("cmd", a:command_str)
-    return a:command_str
 endfunction
 
 function s:FilterList(list, str, leave)
@@ -190,16 +185,17 @@ function FilterQfLocList(str, leave)
   endif
 endfunction
 
-nnoremap <leader>qf :call InputVimEscapedStr("lines to leave: ", "\"'")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 1)')<cr><cr>
-nnoremap <leader>qe :call InputVimEscapedStr("lines to exclude: ", "\"'")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 0)')<cr><cr>
-nnoremap <leader>qd :call setqflist([], ' ', {'lines' : systemlist('git diff --name-only --cached --diff-filter=AM'), 'efm':'%f'})<cr>:copen<cr>
+nnoremap <silent><leader>qf :let @i=VimEscape(InputStr("lines to leave: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 1)')<cr><cr>
+nnoremap <silent><leader>qe :let @i=VimEscape(InputStr("lines to exclude: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 0)')<cr><cr>
+nnoremap <silent><leader>qd :call setqflist([], ' ', {'lines' : systemlist('git diff --name-only --cached --diff-filter=AM'), 'efm':'%f'})<cr>:copen<cr>
 
 command! -bang -nargs=+ -complete=dir Rg call RunRgWithOpts(<q-args>)
-nnoremap <leader>sw :call InputVimEscapedStr(" words: ", "\"'")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F -w')<cr><cr>
-nnoremap <leader>se :call InputVimEscapedStr(" exact: ", "\"'")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
-nnoremap <leader>ss :call InputVimEscapedStr("search: ", '"')<cr>:Rg "<c-r>i" --no-ignore-vcs -S <space>
-nnoremap <leader>sy /<c-r>=VimEscape(substitute(@+, '\n\+$', '', ''), ".* \\/")<cr>
-nnoremap <leader>si /<c-r>=InputVimEscapedStr("input: ", ".* \\/")<cr>
+nnoremap <leader>sp /<c-r>=VimEscape(substitute(@+, '\n\+$', '', ''), ".* \\/[]~")<cr>
+nnoremap <silent><leader>sP :let @i=VimEscape(@+, "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
+nnoremap <silent><leader>se :let @i=VimEscape(InputStr(" exact: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
+nnoremap <silent><leader>sw :let @i=VimEscape(InputStr(" words: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F -w')<cr><cr>
+nnoremap <leader>ss :let @i=VimEscape(InputStr("search: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -S')<cr>
+
 nnoremap <leader>sb :Buffers<cr>
 nnoremap <leader>sf :FZF<cr>
 nnoremap <leader>sh :History<cr>
