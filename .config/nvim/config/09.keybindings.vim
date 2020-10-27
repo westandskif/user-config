@@ -173,8 +173,6 @@ function! RgExactSearch(type, ...)
     silent exe "normal! '[V']y"
   elseif a:type == 'block'
     silent exe "normal! `[\<C-V>`]y"
-  " elseif a:type == 'char'
-  "   silent exe "normal! `[\<C-V>`]y"
   else
     silent exe "normal! `[v`]y"
   endif
