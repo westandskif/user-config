@@ -187,15 +187,22 @@ function! RgExactSearch(type, ...)
 endfunction
 
 command! -bang -nargs=+ -complete=dir Rg call RunRgWithOpts(<q-args>)
+
+let g:which_key_map.s.s = 'exact search selection'
 nnoremap <silent><leader>ss :set operatorfunc=RgExactSearch<CR>g@
 vnoremap <silent><leader>ss :<C-U>call RgExactSearch(visualmode(), 1)<CR>
 
+let g:which_key_map.s.p = '"+" locally'
 nnoremap <leader>sp /<c-r>=VimEscape(substitute(@+, '\n\+$', '', ''), ".* \\/[]~")<cr>
+let g:which_key_map.s.P = '"+" globally'
 nnoremap <silent><leader>sP :let @i=VimEscape(@+, "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
 
+let g:which_key_map.s.e = 'exact'
 nnoremap <silent><leader>se :let @i=VimEscape(InputStr(" exact: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
+let g:which_key_map.s.w = 'exact words'
 nnoremap <silent><leader>sw :let @i=VimEscape(InputStr(" words: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F -w')<cr><cr>
 
+let g:which_key_map.s.c = 'custom Rg opts'
 nnoremap <leader>sc :let @i=VimEscape(InputStr("search: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -S')<cr>
 
 
