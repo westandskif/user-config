@@ -116,8 +116,8 @@ let g:which_key_map.s.b = 'buffers'
 let g:which_key_map.s.e = 'exact'
 let g:which_key_map.s.f = 'files'
 let g:which_key_map.s.h = 'history'
-let g:which_key_map.s.r = 'custom Rg opts'
-let g:which_key_map.s.r = 'regexp'
+let g:which_key_map.s.s = 'exact search selection'
+let g:which_key_map.s.c = 'custom Rg opts'
 let g:which_key_map.s.t = 'tags'
 let g:which_key_map.s.w = 'exact words'
 let g:which_key_map.s.p = '"+" locally'
@@ -161,6 +161,50 @@ function RunRgWithOpts(command_suffix)
     return call('fzf#vim#grep', l:fzf_args)
 endfunction
 
+" FOR <leader>ss binding to work with vim movements
+function! RgExactSearch(type, ...)
+  let sel_save = &selection
+  let &selection = "inclusive"
+  let reg_save = @@
+
+  if a:0  " Invoked from Visual mode, use '< and '> marks.
+    silent exe "normal! `<" . a:type . "`>y"
+  elseif a:type == 'line'
+    silent exe "normal! '[V']y"
+  elseif a:type == 'block'
+    silent exe "normal! `[\<C-V>`]y"
+  " elseif a:type == 'char'
+  "   silent exe "normal! `[\<C-V>`]y"
+  else
+    silent exe "normal! `[v`]y"
+  endif
+
+  let @i=VimEscape(@@, "\\$#%\"`")
+  silent execute HistAddAndReturn('Rg "'.@i.'" --no-ignore-vcs -F')
+
+  let &selection = sel_save
+  let @@ = reg_save
+endfunction
+
+command! -bang -nargs=+ -complete=dir Rg call RunRgWithOpts(<q-args>)
+nnoremap <silent><leader>ss :set operatorfunc=RgExactSearch<CR>g@
+vnoremap <silent><leader>ss :<C-U>call RgExactSearch(visualmode(), 1)<CR>
+
+nnoremap <leader>sp /<c-r>=VimEscape(substitute(@+, '\n\+$', '', ''), ".* \\/[]~")<cr>
+nnoremap <silent><leader>sP :let @i=VimEscape(@+, "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
+
+nnoremap <silent><leader>se :let @i=VimEscape(InputStr(" exact: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
+nnoremap <silent><leader>sw :let @i=VimEscape(InputStr(" words: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F -w')<cr><cr>
+
+nnoremap <leader>sc :let @i=VimEscape(InputStr("search: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -S')<cr>
+
+
+nnoremap <leader>sb :Buffers<cr>
+nnoremap <leader>sf :FZF<cr>
+nnoremap <leader>sh :History<cr>
+nnoremap <leader>st :Tags<cr>
+
+
 function s:FilterList(list, str, leave)
     if a:leave
         return filter(a:list, {idx, val -> (stridx(val.text, a:str) > -1 || stridx(bufname(val.bufnr), a:str) > -1)})
@@ -185,23 +229,9 @@ function FilterQfLocList(str, leave)
   endif
 endfunction
 
-nnoremap <silent><leader>qf :let @i=VimEscape(InputStr("lines to leave: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 1)')<cr><cr>
-nnoremap <silent><leader>qe :let @i=VimEscape(InputStr("lines to exclude: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 0)')<cr><cr>
+nnoremap <silent><leader>qf :let @i=VimEscape(InputStr("lines to leave: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 1)')<cr><cr>
+nnoremap <silent><leader>qe :let @i=VimEscape(InputStr("lines to exclude: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 0)')<cr><cr>
 nnoremap <silent><leader>qd :call setqflist([], ' ', {'lines' : systemlist('git diff --name-only --cached --diff-filter=AM'), 'efm':'%f'})<cr>:copen<cr>
-
-command! -bang -nargs=+ -complete=dir Rg call RunRgWithOpts(<q-args>)
-nnoremap <leader>sp /<c-r>=VimEscape(substitute(@+, '\n\+$', '', ''), ".* \\/[]~")<cr>
-nnoremap <silent><leader>sP :let @i=VimEscape(@+, "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
-nnoremap <silent><leader>se :let @i=VimEscape(InputStr(" exact: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
-nnoremap <silent><leader>sw :let @i=VimEscape(InputStr(" words: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F -w')<cr><cr>
-nnoremap <leader>ss :let @i=VimEscape(InputStr("search: "), "\\#%\"'`")<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -S')<cr>
-
-nnoremap <leader>sb :Buffers<cr>
-nnoremap <leader>sf :FZF<cr>
-nnoremap <leader>sh :History<cr>
-nnoremap <leader>st :Tags<cr>
-
-
 
 
 let g:which_key_map.l = { 'name' : '☰ LANGUAGE' }
