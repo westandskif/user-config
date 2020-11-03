@@ -58,7 +58,7 @@ create_venv()
 if [[ ! -z ${DOCKER_IMAGE:-""} ]]; then
     python_version_from_docker_image
     create_venv
-    SITEPACKAGES_PATH=$(find $VENV_PATH -type d -name 'site-packages')
+    SITEPACKAGES_PATH=$(find $VENV_PATH -type d -wholename "$VENV_PATH/*/python*/site-packages")
     python_copy_docker_image_sitepackages
 fi
 
@@ -77,7 +77,7 @@ _script="#!/bin/bash
 set -o nounset
 set -o errexit
 
-export SITEPACKAGES_PATH=$(find $VENV_PATH -type d -name 'site-packages')
+export SITEPACKAGES_PATH=$(find $VENV_PATH -type d -wholename "$VENV_PATH/*/python*/site-packages" -o -wholename "$VENV_PATH/src | paste -sd ':'")
 source $VENV_PATH/bin/activate \\
     && exec $NVIM_BASE_EXECUTABLE \$@\n"
 printf "$_script" > $NVIM_PROJECT_EXECUTABLE

@@ -232,8 +232,6 @@ function FilterQfLocList(str, leave)
   endif
 endfunction
 
-nnoremap <silent><leader>qf :let @i=VimEscape(InputStr("lines to leave: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 1)')<cr><cr>
-nnoremap <silent><leader>qe :let @i=VimEscape(InputStr("lines to exclude: "), "\\$#%\"'`")<cr>:<c-r>=HistAddAndReturn('call FilterQfLocList("<c-r>i", 0)')<cr><cr>
 nnoremap <silent><leader>qd :call setqflist([], ' ', {'lines' : systemlist('git diff --name-only --cached --diff-filter=AM'), 'efm':'%f'})<cr>:copen<cr>
 
 

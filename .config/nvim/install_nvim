@@ -73,7 +73,13 @@ install_nvim_python()
     fi
 
     $VENV_DIR/bin/python -m pip install -U \
-        pynvim python-language-server pyls-isort pyls-black flake8 pylint pylint-django autoflake
+        pynvim \
+        python-language-server \
+        pyls-isort \
+        pyls-black \
+        flake8 \
+        pylint \
+        autoflake
     VENV_BINS_TO_EXPOSE=$VENV_DIR/bins-to-expose
     mkdir -p $VENV_BINS_TO_EXPOSE
     strings=(

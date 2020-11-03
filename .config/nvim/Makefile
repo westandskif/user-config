@@ -19,4 +19,5 @@ nvim-convtools:
 nvim-aprenita:
 	./make_python_project_nvim_executable \
 		--executable-name nvim-aprenita \
-		--from-docker-image aprenita-infrastructure_backend #--force-nvim-reinstall
+		--from-docker-image aprenita-infrastructure_backend
+		# --from-docker-image aprenita-infrastructure_backend --force-nvim-reinstall \

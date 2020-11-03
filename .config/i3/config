@@ -231,7 +231,7 @@ assign [class="^Skype$"] 6
 assign [class="^TelegramDesktop$"] 7
 assign [class="^ViberPC$"] 7
 assign [class="^Spotify Premium$"] 8
-# bindsym $mod+Mod1+3 exec --no-startup-id chromium
+# bindsym $mod+Mod1+3 exec --no-startup-id prime-run brave --force-device-scale-factor=2.5 --use-gl=desktop
 bindsym $mod+Mod1+3 exec --no-startup-id brave --force-device-scale-factor=2.5
 bindsym $mod+Mod1+4 exec --no-startup-id slack
 bindsym $mod+Mod1+5 exec --no-startup-id evolution
