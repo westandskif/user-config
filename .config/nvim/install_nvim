@@ -65,6 +65,11 @@ install_nvim_python()
     PYENV_ENVS_DIR=$(dirname $PYTHON_PYENV_DIR)
     VENV_DIR="$PYENV_ENVS_DIR/nvim-$PYTHON_VERSION"
 
+    if [[ ${FORCE_REINSTALL:-0} -eq 1 ]] ; then
+        echo "dropping nvim python - $VENV_DIR"
+        rm -rf $VENV_DIR
+    fi
+
     if [[ ! -d "$VENV_DIR" ]]; then
         $PYTHON_PYENV_DIR/bin/pip install virtualenv
         $PYTHON_PYENV_DIR/bin/virtualenv \
@@ -72,7 +77,7 @@ install_nvim_python()
             $VENV_DIR
     fi
 
-    $VENV_DIR/bin/python -m pip install -U \
+    $VENV_DIR/bin/python -m pip install -U --no-cache-dir \
         pynvim \
         python-language-server \
         pyls-isort \

@@ -2,11 +2,10 @@
 set -o nounset
 set -o errexit
 
-xset -q | grep -o "Group 2:\s\+on" > /dev/null 2>&1 && GROUP2_ENABLED=1 || GROUP2_ENABLED=0
+xset -q | grep -E -o "Group 2:\s+on" > /dev/null 2>&1 && GROUP2_ENABLED=1 || GROUP2_ENABLED=0
 
 IFS=$',' read -r -d '' -a LAYOUTS < \
     <( setxkbmap -print -verbose 10 | grep "layout:" | awk '{print $2}' | tr -d '\n' && printf '\0' )
-
 
 if [[ $GROUP2_ENABLED -eq 0 ]]; then
     CURRENT_LAYOUT="${LAYOUTS[0]}"
@@ -17,4 +16,4 @@ else
         exit 1
     fi
 fi
-qdbus i3.status.rs /CurrentKeyboardLayout i3.status.rs.SetStatus $CURRENT_LAYOUT
+qdbus i3.status.rs /CurrentKeyboardLayout i3.status.rs.SetStatus $CURRENT_LAYOUT na na

@@ -37,8 +37,11 @@ alias gw='export __GL_SHADER_DISK_CACHE_PATH=/tmp/gw-shaders; \
   __GL_SYNC_TO_VBLANK=0 \
   __GL_YIELD="NOTHING" \
   wine64 /home/nik/games/gw2/gw2/Gw2-64.exe -dx9single'
+
 alias ll='ls -la'
 alias shu='shutdown -h now'
-# alias ua-mirrors='sudo reflector --verbose --latest 30 --protocol http --country "Belarus,Russia,Germany,United States" --sort rate --save /etc/pacman.d/mirrorlist'
 alias ua-mirrors='sudo reflector --verbose --latest 30 --sort rate --save /etc/pacman.d/mirrorlist'
+alias ua-drop-caches='sudo paccache -rk1; yay -Sc --aur --noconfirm'
+alias ua-update-all='ua-drop-caches; ua-mirrors; yay -Syyu'
+
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
