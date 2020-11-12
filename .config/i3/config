@@ -199,6 +199,15 @@ bindsym $mod+r mode "resize"
 # bar {
 #         status_command i3status
 # }
+
+# class                 border  bground text    indicator child_border
+client.focused          #54544A #54544A #EBDBB2 #54544A   #54544A
+client.focused_inactive #3E3E37 #3E3E37 #A9A9A9 #3E3E37   #3E3E37
+client.unfocused        #222222 #222222 #888888 #292D2E   #222222
+client.urgent           #900000 #900000 #FFFFFF #900000   #900000
+client.placeholder      #000000 #000000 #EBDBB2 #000000   #000000
+
+client.background       #FFFFFF
 bar {
     font pango:Meslo LG S DZ, Font Awesome 5 Free, Font Awesome 5 Brands 8
     position bottom
@@ -207,12 +216,26 @@ bar {
         separator #666666
         background #222222
         statusline #f0f0f0
-        focused_workspace #005580 #005580 #f0f0f0
-        active_workspace #333333 #333333 #ffffff
-        inactive_workspace #333333 #333333 #888888
+        focused_workspace #59590f #59590f #ebdbb2
+        active_workspace #333333 #333333 #ebdbb2
+        inactive_workspace #333333 #333333 #ebdbb2
         urgent_workspace #2f343a #900000 #ffffff
     }
 }
+# FROM  i3 status rust
+# idle_bg: "#282828".to_owned(),
+# idle_fg: "#ebdbb2".to_owned(),
+# info_bg: "#458588".to_owned(),
+# info_fg: "#ebdbb2".to_owned(),
+# good_bg: "#59590f".to_owned(),
+# good_fg: "#ebdbb2".to_owned(),
+# warning_bg: "#d79921".to_owned(),
+# warning_fg: "#ebdbb2".to_owned(),
+# critical_bg: "#cc241d".to_owned(),
+# critical_fg: "#ebdbb2".to_owned(),
+# separator: "\u{e0b2}".to_owned(),
+# separator_bg: "auto".to_owned(),
+# separator_fg: "auto".to_owned(),
 
 exec --no-startup-id xrandr --dpi 288/eDP-1
 exec --no-startup-id light -S 60

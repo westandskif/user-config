@@ -58,7 +58,7 @@ block = "sound"
 [[block]]
 block = "custom_dbus"
 name = "CurrentKeyboardLayout"
-# qdbus i3.status.rs /CurrentKeyboardLayout i3.status.rs.SetStatus us
+# qdbus i3.status.rs /CurrentKeyboardLayout i3.status.rs.SetStatus us na na
 
 [[block]]
 block = "time"

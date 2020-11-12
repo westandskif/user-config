@@ -33,6 +33,8 @@ Plug 'farfanoide/inflector.vim'
 
 Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
 let g:Hexokinase_ftEnabled = ['less']
+let g:Hexokinase_highlighters = ['backgroundfull']
+
 
 
 call plug#end()
