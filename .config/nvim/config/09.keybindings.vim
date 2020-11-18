@@ -55,8 +55,8 @@ let g:which_key_map.m.t = 'tabbar toggle'
 nnoremap <leader>mt :TagbarToggle<CR>
 
 
-function IsQuickfixOpen()
-  return len(filter(getwininfo(), 'v:val.quickfix && !v:val.loclist'))
+function IsLocListOpen()
+  return len(filter(getwininfo(), 'v:val.quickfix && v:val.loclist'))
 endfunction
 
 let g:which_key_map.q = { 'name' : '☰ QUICKFIX / LOCLIST' }
@@ -74,10 +74,15 @@ let g:which_key_map.q.d = 'populate from git Diff'
 nnoremap <silent> <leader>qol  :lopen<CR>
 nnoremap <silent> <leader>qoq  :copen<CR>
 nnoremap <silent> <leader>qC :call setqflist(getloclist(winnr()))<CR>
-nnoremap <silent><expr> <leader>qc IsQuickfixOpen() ? ":cc\<CR>" : ":ll\<CR>"
-nnoremap <silent><expr> <leader>qn IsQuickfixOpen() ? ":cnext\<CR>" : ":lnext\<CR>"
-nnoremap <silent><expr> <leader>qp IsQuickfixOpen() ? ":cprevious\<CR>" : ":lprevious\<CR>"
-nnoremap <silent><expr> <leader>qq IsQuickfixOpen() ? ":cclose\<CR>" : ":lclose\<CR>"
+nnoremap <silent><expr> <leader>qc IsLocListOpen() ? ":ll\<CR>" : ":cc\<CR>"
+nnoremap <silent><expr> gc IsLocListOpen() ? ":ll\<CR>zz" : ":cc\<CR>zz"
+nnoremap <silent><expr> <leader>qn IsLocListOpen() ? ":lnext\<CR>" : ":cnext\<CR>"
+nnoremap <silent><expr> gn IsLocListOpen() ? ":lnext\<CR>zz" : ":cnext\<CR>zz"
+nnoremap <silent><expr> gN IsLocListOpen() ? ":lnfile\<CR>zz" : ":cnfile\<CR>zz"
+nnoremap <silent><expr> <leader>qp IsLocListOpen() ? ":lprevious\<CR>" : ":cprevious\<CR>"
+nnoremap <silent><expr> gp IsLocListOpen() ? ":lprevious\<CR>zz" : ":cprevious\<CR>zz"
+nnoremap <silent><expr> gP IsLocListOpen() ? ":lpfile\<CR>zz" : ":cpfile\<CR>zz"
+nnoremap <silent><expr> <leader>qq IsLocListOpen() ? ":lclose\<CR>" : ":cclose\<CR>"
 
 nnoremap gh <c-w>h
 nnoremap gl <c-w>l
