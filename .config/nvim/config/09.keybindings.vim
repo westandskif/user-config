@@ -184,18 +184,18 @@ let g:sym_to_escape_for_buffer_search = ".* \\/[]~"
 let g:which_key_map.s.p = '"+" locally'
 nnoremap <leader>sp /<c-r>=VimEscape(substitute(@+, '\n\+$', '', ''), g:sym_to_escape_for_buffer_search)<cr>
 let g:which_key_map.s.P = '"+" globally'
-nnoremap <silent><leader>sP :let @i=VimEscape(@+, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
+nnoremap <silent><leader>sP :let @i=VimEscape(@+, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -- "<c-r>i"')<cr><cr>
 
 let g:which_key_map.s.e = 'exact'
-nnoremap <silent><leader>se :call InputStr(" exact: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
-vnoremap <silent><leader>se :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F')<cr><cr>
+nnoremap <silent><leader>se :call InputStr(" exact: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -- "<c-r>i"')<cr><cr>
+vnoremap <silent><leader>se :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -- "<c-r>i"')<cr><cr>
 let g:which_key_map.s.w = 'exact words'
-nnoremap <silent><leader>sw :call InputStr(" words: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F -w')<cr><cr>
-vnoremap <silent><leader>sw :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -F -w')<cr><cr>
+nnoremap <silent><leader>sw :call InputStr(" words: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -w -- "<c-r>i"')<cr><cr>
+vnoremap <silent><leader>sw :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -w -- "<c-r>i"')<cr><cr>
 
 let g:which_key_map.s.c = 'custom Rg opts'
-nnoremap <leader>sc :call InputStr("search: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -S')<cr>
-vnoremap <leader>sc :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg "<c-r>i" --no-ignore-vcs -S')<cr>
+nnoremap <leader>sc :call InputStr("search: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -S -- "<c-r>i"')<cr>
+vnoremap <leader>sc :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -S -- "<c-r>i"')<cr>
 
 nnoremap <leader>sb :Buffers<cr>
 nnoremap <leader>sf :FZF<cr>

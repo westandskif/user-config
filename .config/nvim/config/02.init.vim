@@ -1,5 +1,8 @@
 autocmd ColorScheme * highlight SpellBad cterm=underline gui=underline ctermfg=243 guifg=#727272
+
 colorscheme space_vim_theme
+" colorscheme darcula
+
 set termguicolors
 set hlsearch incsearch
 set number
