@@ -1,4 +1,4 @@
-personal_ws-1.1 en 105 
+personal_ws-1.1 en 110 
 Async
 BCC
 CHF
@@ -31,6 +31,7 @@ deps
 desc
 dir
 django
+dyn
 elif
 endif
 enum
@@ -50,6 +51,7 @@ html
 http
 https
 iap
+impl
 incr
 incrby
 init
@@ -80,6 +82,7 @@ paginator
 param
 params
 postgres
+println
 prog
 pytz
 qbo
@@ -95,6 +98,7 @@ stmt
 stmts
 str
 strftime
+struct
 sys
 trunc
 tzinfo
@@ -102,5 +106,6 @@ url
 usd
 utc
 utils
+vec
 xirr
 xlsxwriter

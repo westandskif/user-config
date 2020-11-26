@@ -413,17 +413,17 @@
 #
 [evolution]
 	appname = "evolution-mail-notification"
-	script = "~/.config/dunst/highlight_evolution"
+	script = "~/.config/dunst/highlight_window"
     urgency = normal
 
 [slack]
 	appname = "Slack"
-	script = "~/.config/dunst/highlight_slack"
+	script = "~/.config/dunst/highlight_window"
     urgency = normal
 
 [discord]
 	appname = "discord"
-	script = "~/.config/dunst/highlight_discord"
+	script = "~/.config/dunst/highlight_window"
     urgency = normal
 
 # vim: ft=cfg
