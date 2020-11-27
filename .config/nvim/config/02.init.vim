@@ -3,6 +3,21 @@ autocmd ColorScheme * highlight SpellBad cterm=underline gui=underline ctermfg=2
 colorscheme space_vim_theme
 " colorscheme darcula
 
+" Protect changes between writes. Default values of
+" updatecount (200 keystrokes) and updatetime
+" (4 seconds) are fine
+set swapfile
+set updatetime=10000
+" protect against crash-during-write
+set writebackup
+" but do not persist backup after successful write
+set nobackup
+" use rename-and-write-new method whenever safe
+set backupcopy=auto
+" persist the undo tree for each file
+set undofile
+
+
 set termguicolors
 set hlsearch incsearch
 set number

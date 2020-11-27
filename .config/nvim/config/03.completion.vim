@@ -8,8 +8,8 @@ let g:LanguageClient_serverCommands = {
     \ 'rust': ['rust-analyzer'],
     \ 'python': ['pyls'],
     \ }
-let g:LanguageClient_loggingFile =  expand('~/.local/share/nvim/LanguageClient.log')
-let g:LanguageClient_serverStderr = expand('~/.local/share/nvim/LanguageServer.log')
+let g:LanguageClient_loggingFile =  expand('/tmp/nvim/LanguageClient.log')
+let g:LanguageClient_serverStderr = expand('/tmp/nvim/LanguageServer.log')
 
 let g:neoformat_run_all_formatters = 1
 let g:neoformat_enabled_python = ['isort', 'black']
