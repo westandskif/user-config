@@ -179,6 +179,7 @@ endfunction
 command! -bang -nargs=+ -complete=dir Rg call RunRgWithOpts(<q-args>)
 
 let g:sym_to_escape_for_rg = "\\$#%\"'`"
+let g:sym_to_escape_for_rg_regex = "#%\"'"
 let g:sym_to_escape_for_buffer_search = ".* \\/[]~"
 
 let g:which_key_map.s.p = '"+" locally'
@@ -196,6 +197,10 @@ vnoremap <silent><leader>sw :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, 
 let g:which_key_map.s.c = 'custom Rg opts'
 nnoremap <leader>sc :call InputStr("search: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -S -- "<c-r>i"')<cr>
 vnoremap <leader>sc :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -S -- "<c-r>i"')<cr>
+
+let g:which_key_map.s.r = 'Rg regex with PCRE2'
+nnoremap <leader>sr :call InputStr("regex: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg_regex)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs --pcre2 -- "<c-r>i"')<cr>
+vnoremap <leader>sr :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg_regex)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs --pcre2 -- "<c-r>i"')<cr>
 
 nnoremap <leader>sb :Buffers<cr>
 nnoremap <leader>sf :FZF<cr>

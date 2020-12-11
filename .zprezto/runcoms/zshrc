@@ -41,8 +41,11 @@ alias gw='export __GL_SHADER_DISK_CACHE_PATH=/tmp/gw-shaders; \
 alias ll='ls -la -g -ct'
 alias shu='shutdown -h now'
 alias ua-vpn="sudo /home/nik/.local/share/xvpn/xvpn connect -cmdkey $(cat /home/nik/.xvpn.key)"
-alias ua-mirrors='sudo reflector --verbose --latest 30 --sort rate --save /etc/pacman.d/mirrorlist'
+alias ua-mirrors='sudo reflector --verbose --latest 5 --sort rate --country "Belarus,Poland,France,Russia,Germany" --save /etc/pacman.d/mirrorlist'
 alias ua-drop-caches='sudo paccache -rk1; yay -Sc --aur --noconfirm'
-alias ua-update-all='ua-drop-caches; ua-mirrors; yay -Syyu'
+alias ua-update-all='ua-drop-caches; yay -Syyu --noconfirm'
+
+
+export AWS_VAULT_SECRET_SERVICE_COLLECTION_NAME="login"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
