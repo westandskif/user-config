@@ -41,7 +41,10 @@ alias gw='export __GL_SHADER_DISK_CACHE_PATH=/tmp/gw-shaders; \
 alias ll='ls -la -g -ct'
 alias shu='shutdown -h now'
 alias ua-vpn="sudo /home/nik/.local/share/xvpn/xvpn connect -cmdkey $(cat /home/nik/.xvpn.key)"
-alias ua-mirrors='sudo reflector --verbose --latest 5 --sort rate --country "Belarus,Poland,France,Russia,Germany" --save /etc/pacman.d/mirrorlist'
+alias ua-mirrors-de='sudo reflector --verbose --latest 3 --sort rate --protocol "http" --country "DE" --connection-timeout 1 --download-timeout 10 --save /etc/pacman.d/mirrorlist'
+alias ua-mirrors-by='sudo reflector --verbose --latest 3 --sort rate --protocol "http" --country "BY" --connection-timeout 1 --download-timeout 10 --save /etc/pacman.d/mirrorlist'
+alias ua-mirrors-us='sudo reflector --verbose --latest 3 --sort rate --protocol "http" --country "US" --connection-timeout 1 --download-timeout 10 --save /etc/pacman.d/mirrorlist'
+alias ua-mirrors-jp='sudo reflector --verbose --latest 3 --sort rate --protocol "http" --country "JP" --connection-timeout 1 --download-timeout 10 --save /etc/pacman.d/mirrorlist'
 alias ua-drop-caches='sudo paccache -rk1; yay -Sc --aur --noconfirm'
 alias ua-update-all='ua-drop-caches; yay -Syyu --noconfirm'
 

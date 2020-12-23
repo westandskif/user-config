@@ -1,4 +1,4 @@
-personal_ws-1.1 en 117 
+personal_ws-1.1 en 121 
 Async
 BCC
 CHF
@@ -92,7 +92,9 @@ prog
 pytz
 qbo
 redis
+reqwest
 rng
+serde
 serializer
 serializers
 setattr
@@ -107,10 +109,12 @@ str
 strftime
 struct
 sys
+tokio
 trunc
 tzinfo
 url
 usd
+usize
 utc
 utils
 vec

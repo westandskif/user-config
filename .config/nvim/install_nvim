@@ -104,7 +104,7 @@ set -o errexit
 if [[ $i == 'pylint' && ! -z \${SITEPACKAGES_PATH:-} ]]; then
     export PYTHONPATH=\${PYTHONPATH:-}:\${SITEPACKAGES_PATH:-}
 fi
-exec $VENV_DIR/bin/$i \$@"
+exec $VENV_DIR/bin/$i \"\$@\""
         printf "$_script" > $VENV_BINS_TO_EXPOSE/$i
         chmod 0777 $VENV_BINS_TO_EXPOSE/$i
     done
@@ -130,7 +130,7 @@ fi
 
 export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
     && export XDG_DATA_HOME=$XDG_DATA_HOME \\
-    && exec $NVIM_ROOT/nvim-linux64/bin/nvim \$@\n"
+    && exec $NVIM_ROOT/nvim-linux64/bin/nvim \"\$@\"\n"
 
     printf "$_script" > $SCRIPT_PATH
     chmod 0777 $SCRIPT_PATH

@@ -6,7 +6,7 @@ AUTOGEN_SCRIPTS_DIR := ${DIR}/autogen_scripts
 nvim:
 	./install_nvim \
 		--output-executable-path ${AUTOGEN_SCRIPTS_DIR}/nvim-python-3.7.9 \
-		--python-version 3.7.9 # --force
+		--python-version 3.7.9 #--force
 	sudo ln -sf ${AUTOGEN_SCRIPTS_DIR}/nvim-python-3.7.9 /usr/local/bin/nvim
 
 nvim-convtools:
@@ -19,5 +19,4 @@ nvim-convtools:
 nvim-aprenita:
 	./make_python_project_nvim_executable \
 		--executable-name nvim-aprenita \
-		--from-docker-image aprenita-infrastructure_backend
-		# --from-docker-image aprenita-infrastructure_backend --force-nvim-reinstall
+		--from-docker-image aprenita-infrastructure_backend #--force

@@ -158,7 +158,9 @@ function RunRgWithOpts(command_suffix)
                 \fzf#vim#with_preview({'options': [
                     \'--info=inline',
                     \'--preview-window',
-                    \'right:50%',
+                    \'right:60%',
+                    \'--bind',
+                    \'?:toggle-preview',
                     \'--preview',
                     \'bat --color=always --style=header,grid --line-range :300 {}'
                 \]}),
@@ -207,32 +209,7 @@ nnoremap <leader>sf :FZF<cr>
 nnoremap <leader>sh :History<cr>
 nnoremap <leader>st :Tags<cr>
 
-
-function s:FilterList(list, str, leave)
-    if a:leave
-        return filter(a:list, {idx, val -> (stridx(val.text, a:str) > -1 || stridx(bufname(val.bufnr), a:str) > -1)})
-    else
-        return filter(a:list, {idx, val -> (stridx(val.text, a:str) == -1 && stridx(bufname(val.bufnr), a:str) == -1)})
-    endif
-endfunction
-function FilterQfLocList(str, leave)
-  let l:qf_number = len(filter(getwininfo(), 'v:val.quickfix && !v:val.loclist'))
-  if l:qf_number == 1
-      let l:list = getqflist()
-      call setqflist(s:FilterList(l:list, a:str, a:leave))
-      return
-  endif
-
-  let l:tabnr = tabpagenr()
-  let l:lists = filter(getwininfo(), {idx, val -> v:val.quickfix && v:val.loclist && l:tabnr == v:val.tabnr})
-  if len(l:lists) == 1
-      let l:loclist_number = l:lists[0]['loclist'] 
-      let l:list = getloclist(l:loclist_number)
-      call setloclist(l:loclist_number, s:FilterList(l:list, a:str, a:leave))
-  endif
-endfunction
-
-nnoremap <silent><leader>qd :call setqflist([], ' ', {'lines' : systemlist('git diff --name-only --cached --diff-filter=AM'), 'efm':'%f'})<cr>:copen<cr>
+nnoremap <silent><leader>qd :call setqflist([], ' ', {'lines' : systemlist('git diff  --name-only --diff-filter=AM master...refactor/emails4'), 'efm':'%f'})<cr>:copen<cr>
 
 
 let g:which_key_map.l = { 'name' : '☰ LANGUAGE' }
@@ -240,11 +217,13 @@ let g:which_key_map.l.d = 'go to definition'
 let g:which_key_map.l.m = { 'name' : '☰ Make' }
 let g:which_key_map.l.m.a = 'All'
 let g:which_key_map.l.m.q = 'Quick'
-let g:which_key_map.l.m.d = 'git Diff'
+let g:which_key_map.l.m.Q = 'make Quickfix'
 " ALSO nnoremap gd IS DEFINED LOCALLY FOR BUFFERS
 nnoremap <leader>ld :call LanguageClient#textDocument_definition()<CR>
+nnoremap <leader>lh :call LanguageClient#textDocument_hover()<CR>
 nnoremap <leader>lma :Neomake<cr>
-nnoremap <leader>lmd :call NeomakeGitDiff()<CR>
+nnoremap <leader>lmQQ :call NeomakeQf(neomake_qf_lint_quick)<CR>
+nnoremap <leader>lmQA :call NeomakeQf(neomake_qf_lint_full)<CR>
 
 let g:which_key_map.l.a = { 'name' : '☰ Add' }
 let g:which_key_map.l.a.b = 'breakpoint'
@@ -255,6 +234,7 @@ nnoremap <leader>law :SpellingAddWord<cr>
 let g:which_key_map.l.t = { 'name' : '☰ Toggle' }
 let g:which_key_map.l.t.c = 'toggle context'
 let g:which_key_map.l.t.s = 'toggle spelling'
+let g:which_key_map.l.t.r = 'language server Restart'
 nnoremap <leader>ltc :ContextToggle<CR>
 nnoremap <leader>lts :SpellingToggle<CR>
 
