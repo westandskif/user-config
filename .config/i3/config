@@ -244,6 +244,7 @@ exec --no-startup-id feh --bg-fill ~/Pictures/photo-of-starry-night-1421903.jpg
 exec --no-startup-id blueberry-tray
 exec --no-startup-id ~/.config/i3/alsa-mic-config-keeper
 exec_always --no-startup-id "sleep 5 && /home/nik/.config/i3/i3status-keyboard-layout"
+exec_always --no-startup-id "sudo isw -w SILENT"
 
 assign [class="^Chromium$"] 3
 assign [class="^Brave\-browser$"] 3

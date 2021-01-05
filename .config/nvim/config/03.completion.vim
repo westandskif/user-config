@@ -37,7 +37,7 @@ let g:neomake_qf_lint_quick = {
 			\ 'py': {'filetype': 'python', 'makers': ['flake8']},
 			\}
 let g:neomake_qf_lint_full = {
-			\ 'py': {'filetype': 'python', 'makers': ['flake8', 'pylint']},
+			\ 'py': {'filetype': 'python', 'makers': ['pylint']},
 			\}
 function! NeomakeQf(lint_config)
 	let maker_name_to_maker = {}
@@ -58,10 +58,10 @@ function! NeomakeQf(lint_config)
 
             for maker_name in needed_makers
                 if !has_key(maker_name_to_maker, maker_name)
-                    let maker_name_to_maker[maker_name] = deepcopy(neomake#GetMaker(maker_name, file_filetype))
-                    let maker_name_to_maker[maker_name].append_file = 0
+                    let l:maker_name_to_maker[maker_name] = deepcopy(neomake#GetMaker(maker_name, file_filetype))
+                    let l:maker_name_to_maker[maker_name].append_file = 0
                 endif
-                let maker = maker_name_to_maker[maker_name]
+                let maker = l:maker_name_to_maker[maker_name]
                 call add(maker.args, file_name)
             endfor
         endif

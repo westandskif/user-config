@@ -2,9 +2,8 @@
 nnoremap <esc> :let @/=""<cr>
 inoremap jk <esc>
 tnoremap jk <C-\><C-n>
-inoremap Pp <c-r>"
-inoremap PP <c-r>0
-
+inoremap 0p <c-r>"
+inoremap 0P <c-r>0
 
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<CR>"
 inoremap <Tab> <C-n>
@@ -27,6 +26,14 @@ vnoremap <F5> zH
 vnoremap <F6> zL
 
 command! W :w
+
+function! NetrwMapping()
+    nnoremap <buffer> gh <c-w>h
+    nnoremap <buffer> gl <c-w>l
+    nnoremap <buffer> gj <c-w>j
+    nnoremap <buffer> gk <c-w>k
+    nmap - <Plug>NetrwBrowseUpDir
+endfunction
 
 let g:inflector_mapping = 'gI'
 
@@ -55,35 +62,35 @@ let g:which_key_map.m.t = 'tabbar toggle'
 nnoremap <leader>mt :TagbarToggle<CR>
 
 
-function IsLocListOpen()
+function! IsLocListOpen()
   return len(filter(getwininfo(), 'v:val.quickfix && v:val.loclist'))
 endfunction
+function! PopulateQf(cmd)
+  call setqflist([], ' ', {'lines' : systemlist(a:cmd), 'efm':'%f'})
+  copen
+  return
+endfunction
+command! -nargs=1 CommandToQf :call PopulateQf('<args>')
 
 let g:which_key_map.q = { 'name' : '☰ QUICKFIX / LOCLIST' }
-let g:which_key_map.q.o = {'name': '☰ Open'}
-let g:which_key_map.q.c = 'current'
 let g:which_key_map.q.C = 'copy loclist to quickfix'
-let g:which_key_map.q.n = 'next'
-let g:which_key_map.q.o.l = 'loclist'
-let g:which_key_map.q.o.q = 'quickfix'
-let g:which_key_map.q.p = 'previous'
 let g:which_key_map.q.q = 'quit'
-let g:which_key_map.q.f = 'Filter lines with substr'
-let g:which_key_map.q.e = 'Exclude lines with substr'
-let g:which_key_map.q.d = 'populate from git Diff'
-nnoremap <silent> <leader>qol  :lopen<CR>
-nnoremap <silent> <leader>qoq  :copen<CR>
-nnoremap <silent> <leader>qC :call setqflist(getloclist(winnr()))<CR>
-nnoremap <silent><expr> <leader>qc IsLocListOpen() ? ":ll\<CR>" : ":cc\<CR>"
-nnoremap <silent><expr> gc IsLocListOpen() ? ":ll\<CR>zz" : ":cc\<CR>zz"
-nnoremap <silent><expr> <leader>qn IsLocListOpen() ? ":lnext\<CR>" : ":cnext\<CR>"
-nnoremap <silent><expr> gn IsLocListOpen() ? ":lnext\<CR>zz" : ":cnext\<CR>zz"
-nnoremap <silent><expr> gN IsLocListOpen() ? ":lnfile\<CR>zz" : ":cnfile\<CR>zz"
-nnoremap <silent><expr> <leader>qp IsLocListOpen() ? ":lprevious\<CR>" : ":cprevious\<CR>"
-nnoremap <silent><expr> gp IsLocListOpen() ? ":lprevious\<CR>zz" : ":cprevious\<CR>zz"
-nnoremap <silent><expr> gP IsLocListOpen() ? ":lpfile\<CR>zz" : ":cpfile\<CR>zz"
+let g:which_key_map.q.D = 'populate from git Diff (adjustable command)'
+nnoremap <leader>qD :CommandToQf git diff  --name-only --diff-filter=AM master...
+nnoremap <silent> <leader>qC :call setqflist(getloclist(winnr()))<CR>:lclose<CR>:copen<CR>
 nnoremap <silent><expr> <leader>qq IsLocListOpen() ? ":lclose\<CR>" : ":cclose\<CR>"
+" go current
+nnoremap <silent><expr> gc IsLocListOpen() ? ":ll\<CR>zz" : ":cc\<CR>zz"
+" go next
+nnoremap <silent><expr> gn IsLocListOpen() ? ":lnext\<CR>zz" : ":cnext\<CR>zz"
+" go Next file
+nnoremap <silent><expr> gN IsLocListOpen() ? ":lnfile\<CR>zz" : ":cnfile\<CR>zz"
+" go prev
+nnoremap <silent><expr> gp IsLocListOpen() ? ":lprevious\<CR>zz" : ":cprevious\<CR>zz"
+" go Prev file
+nnoremap <silent><expr> gP IsLocListOpen() ? ":lpfile\<CR>zz" : ":cpfile\<CR>zz"
 
+" move between windows
 nnoremap gh <c-w>h
 nnoremap gl <c-w>l
 nnoremap gj <c-w>j
@@ -93,12 +100,6 @@ augroup netrw_mapping
     autocmd filetype netrw call NetrwMapping()
 augroup END
 
-function! NetrwMapping()
-    nnoremap <buffer> gh <c-w>h
-    nnoremap <buffer> gl <c-w>l
-    nnoremap <buffer> gj <c-w>j
-    nnoremap <buffer> gk <c-w>k
-endfunction
 
 let g:which_key_map.t = { 'name' : '☰ TAB' }
 let g:which_key_map.t.n = 'new'
@@ -109,33 +110,22 @@ nnoremap <leader>tm :tabmove<space>
 nnoremap <leader>tq :tabclose<CR>
 
 let g:which_key_map.j = { 'name' : '☰ JUMP' }
-let g:which_key_map.j.c = 'current buffer dir'
-let g:which_key_map.j.n = 'open notes'
-let g:which_key_map.j.r = 'pwd'
+let g:which_key_map.j.c = 'Current buffer dir'
+let g:which_key_map.j.n = 'Notes'
+let g:which_key_map.j.r = 'Root dir'
 nnoremap <leader>jc :e%:p:h<cr>
 nnoremap <leader>jn :tabnew .notes<CR>
 nnoremap <leader>jr :e.<cr>
 
-let g:which_key_map.s = { 'name' : '☰ SEARCH' }
-let g:which_key_map.s.b = 'buffers'
-let g:which_key_map.s.e = 'exact'
-let g:which_key_map.s.f = 'files'
-let g:which_key_map.s.h = 'history'
-let g:which_key_map.s.s = 'exact search selection'
-let g:which_key_map.s.c = 'custom Rg opts'
-let g:which_key_map.s.t = 'tags'
-let g:which_key_map.s.w = 'exact words'
-let g:which_key_map.s.p = '"+" locally'
-let g:which_key_map.s.P = '"+" globally'
 
-function InputStr(prompt_str)
+function! InputStr(prompt_str)
     call inputsave()
     let l:input_str =input(a:prompt_str)
     call inputrestore()
     let @i = l:input_str
     return l:input_str
 endfunction
-function VimEscape(str, symbols_to_escape)
+function! VimEscape(str, symbols_to_escape)
     let l:_symbols_to_escape = a:symbols_to_escape
     let l:str = a:str
     " single quote is the exception
@@ -145,12 +135,12 @@ function VimEscape(str, symbols_to_escape)
     endif
     return escape(l:str, l:_symbols_to_escape)
 endfunction
-function HistAddAndReturn(command_str)
-    :call histadd("cmd", a:command_str)
+function! HistAddAndReturn(command_str)
+    call histadd("cmd", a:command_str)
     return a:command_str
 endfunction
 
-function RunRgWithOpts(command_suffix)
+function! RunRgWithOpts(command_suffix)
     let l:command = 'rg --column --line-number --no-heading --color=always --sort=path ' . a:command_suffix
     let l:fzf_args = [
                 \l:command,
@@ -180,44 +170,52 @@ endfunction
 
 command! -bang -nargs=+ -complete=dir Rg call RunRgWithOpts(<q-args>)
 
+
+let g:which_key_map.s = { 'name' : '☰ SEARCH' }
+let g:which_key_map.s.P = '"+" globally'
+let g:which_key_map.s.b = 'buffers'
+let g:which_key_map.s.c = 'custom Rg opts'
+let g:which_key_map.s.e = 'exact'
+let g:which_key_map.s.f = 'files'
+let g:which_key_map.s.h = 'history'
+let g:which_key_map.s.l = 'exact Locally'
+let g:which_key_map.s.p = '"+" locally'
+let g:which_key_map.s.r = 'Rg regex with PCRE2'
+let g:which_key_map.s.t = 'tags'
+let g:which_key_map.s.w = 'exact words'
+
 let g:sym_to_escape_for_rg = "\\$#%\"'`"
 let g:sym_to_escape_for_rg_regex = "#%\"'"
 let g:sym_to_escape_for_buffer_search = ".* \\/[]~"
-
-let g:which_key_map.s.p = '"+" locally'
+nnoremap <silent><leader>sb :Buffers<cr>
+nnoremap <silent><leader>sf :FZF<cr>
+nnoremap <silent><leader>sh :History<cr>
+nnoremap <silent><leader>st :Tags<cr>
+nnoremap <leader>sl :call InputStr("exact: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_buffer_search)<cr>/<c-r>i
+vnoremap <leader>sl :<c-u>call VisualToRegI()<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_buffer_search)<cr>/<c-r>i
 nnoremap <leader>sp /<c-r>=VimEscape(substitute(@+, '\n\+$', '', ''), g:sym_to_escape_for_buffer_search)<cr>
-let g:which_key_map.s.P = '"+" globally'
 nnoremap <silent><leader>sP :let @i=VimEscape(@+, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -- "<c-r>i"')<cr><cr>
-
-let g:which_key_map.s.e = 'exact'
+nnoremap <silent><leader>sc :call InputStr("search: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -S -- "<c-r>i"')<cr>
+vnoremap <silent><leader>sc :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -S -- "<c-r>i"')<cr>
 nnoremap <silent><leader>se :call InputStr(" exact: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -- "<c-r>i"')<cr><cr>
 vnoremap <silent><leader>se :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -- "<c-r>i"')<cr><cr>
-let g:which_key_map.s.w = 'exact words'
+nnoremap <silent><leader>sr :call InputStr("regex: ") <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg_regex)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs --pcre2 -- "<c-r>i"')<cr>
+vnoremap <silent><leader>sr :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg_regex)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs --pcre2 -- "<c-r>i"')<cr>
 nnoremap <silent><leader>sw :call InputStr(" words: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -w -- "<c-r>i"')<cr><cr>
 vnoremap <silent><leader>sw :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -w -- "<c-r>i"')<cr><cr>
 
-let g:which_key_map.s.c = 'custom Rg opts'
-nnoremap <leader>sc :call InputStr("search: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -S -- "<c-r>i"')<cr>
-vnoremap <leader>sc :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -S -- "<c-r>i"')<cr>
-
-let g:which_key_map.s.r = 'Rg regex with PCRE2'
-nnoremap <leader>sr :call InputStr("regex: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg_regex)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs --pcre2 -- "<c-r>i"')<cr>
-vnoremap <leader>sr :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg_regex)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs --pcre2 -- "<c-r>i"')<cr>
-
-nnoremap <leader>sb :Buffers<cr>
-nnoremap <leader>sf :FZF<cr>
-nnoremap <leader>sh :History<cr>
-nnoremap <leader>st :Tags<cr>
-
-nnoremap <silent><leader>qd :call setqflist([], ' ', {'lines' : systemlist('git diff  --name-only --diff-filter=AM master...refactor/emails4'), 'efm':'%f'})<cr>:copen<cr>
 
 
 let g:which_key_map.l = { 'name' : '☰ LANGUAGE' }
+" =================================================
+
 let g:which_key_map.l.d = 'go to definition'
 let g:which_key_map.l.m = { 'name' : '☰ Make' }
-let g:which_key_map.l.m.a = 'All'
 let g:which_key_map.l.m.q = 'Quick'
-let g:which_key_map.l.m.Q = 'make Quickfix'
+let g:which_key_map.l.m.a = 'All'
+let g:which_key_map.l.m.Q = { 'name' : '☰ Quickfix' }
+let g:which_key_map.l.m.Q.Q = 'Quick'
+let g:which_key_map.l.m.Q.A = 'All'
 " ALSO nnoremap gd IS DEFINED LOCALLY FOR BUFFERS
 nnoremap <leader>ld :call LanguageClient#textDocument_definition()<CR>
 nnoremap <leader>lh :call LanguageClient#textDocument_hover()<CR>
@@ -226,7 +224,6 @@ nnoremap <leader>lmQQ :call NeomakeQf(neomake_qf_lint_quick)<CR>
 nnoremap <leader>lmQA :call NeomakeQf(neomake_qf_lint_full)<CR>
 
 let g:which_key_map.l.a = { 'name' : '☰ Add' }
-let g:which_key_map.l.a.b = 'breakpoint'
 let g:which_key_map.l.a.i = 'import'
 let g:which_key_map.l.a.w = 'word'
 nnoremap <leader>law :SpellingAddWord<cr>
@@ -234,7 +231,6 @@ nnoremap <leader>law :SpellingAddWord<cr>
 let g:which_key_map.l.t = { 'name' : '☰ Toggle' }
 let g:which_key_map.l.t.c = 'toggle context'
 let g:which_key_map.l.t.s = 'toggle spelling'
-let g:which_key_map.l.t.r = 'language server Restart'
 nnoremap <leader>ltc :ContextToggle<CR>
 nnoremap <leader>lts :SpellingToggle<CR>
 
@@ -243,32 +239,27 @@ let g:which_key_map.l.f.a = 'all format'
 let g:which_key_map.l.f.f = 'format'
 let g:which_key_map.l.f.i = 'imports'
 nnoremap <leader>lfa :Neoformat<CR>
+nnoremap <leader>lff :Neoformat<CR>
+nnoremap <leader>lfi :Neoformat<CR>
 
-let g:which_key_map.l.o = { 'name': '☰ Optimize' }
-let g:which_key_map.l.o.i = 'imports'
-
-let g:which_key_map.l.s = { 'name': '☰ Spelling' }
-let g:which_key_map.l.s.a = 'Add word'
-nnoremap <leader>lsa :SpellingAddWord<CR>
 
 let g:which_key_map.b = {'name': '☰ BUFFERS'}
-nnoremap <silent> <leader>bq :Bdelete hidden<CR>
 let g:which_key_map.b.q = 'quit all'
+nnoremap <silent> <leader>bq :Bdelete hidden<CR>
 
 let g:which_key_map.c = {'name': '☰ COMMANDS'}
 let g:which_key_map.c.f = 'copy file'
 let g:which_key_map.c.p = 'copy file path'
 let g:which_key_map.c.t = 'Trim whitespaces'
 let g:which_key_map.c.R = 'Refresh buffers & regenerate local tags'
-let g:which_key_map.c.T = 'Refresh outer tags'
+let g:which_key_map.c.T = 'refresh outer Tags'
 nnoremap <leader>cR :syntax off<CR>:let _current_buffer=bufnr("%")<CR>:bufdo execute ":e"<CR>:b <c-r>=_current_buffer<CR><CR>:GutentagsUpdate!<CR>:syntax on<CR>
 nnoremap <leader>cf :!cp '%:p' '%:p:h/.%:e'<Left><Left><Left><Left><Left>
 nnoremap <leader>cT :call GenerateSitePackageTags()<CR>
 nnoremap <silent> <leader>cp :let @0=@%<CR>:let @+=@%<CR>
 nnoremap <silent> <leader>ct :%s/\s\+$//g<CR>
 
-
-call which_key#register('<Space>', "g:which_key_map")
+call which_key#register('<Space>', 'g:which_key_map')
 nnoremap <silent> <leader> :<c-u>WhichKey '<Space>'<CR>
 vnoremap <silent> <leader> :<c-u>WhichKeyVisual '<Space>'<CR>
 
