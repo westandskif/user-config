@@ -45,8 +45,14 @@ alias ua-mirrors-de='sudo reflector --verbose --latest 3 --sort rate --protocol 
 alias ua-mirrors-by='sudo reflector --verbose --latest 3 --sort rate --protocol "http" --country "BY" --connection-timeout 1 --download-timeout 10 --save /etc/pacman.d/mirrorlist'
 alias ua-mirrors-us='sudo reflector --verbose --latest 3 --sort rate --protocol "http" --country "US" --connection-timeout 1 --download-timeout 10 --save /etc/pacman.d/mirrorlist'
 alias ua-mirrors-jp='sudo reflector --verbose --latest 3 --sort rate --protocol "http" --country "JP" --connection-timeout 1 --download-timeout 10 --save /etc/pacman.d/mirrorlist'
-alias ua-drop-caches='sudo paccache -rk1; yay -Sc --aur --noconfirm'
-alias ua-update-all='ua-drop-caches; yay -Syyu --noconfirm'
+alias ua-drop-caches='sudo paccache -rk3; yay -Sc --aur --noconfirm'
+alias ua-update-all='export TMPFILE="$(mktemp)"; \
+	sudo echo 1 > /dev/null; \
+	rate-arch-mirrors --max-delay=21600 | tee -a $TMPFILE \
+	&& sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
+	&& sudo mv $TMPFILE /etc/pacman.d/mirrorlist; \
+	sudo ua-drop-caches;\
+	yay -Syyu --noconfirm'
 
 
 export AWS_VAULT_SECRET_SERVICE_COLLECTION_NAME="login"

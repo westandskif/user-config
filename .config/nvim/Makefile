@@ -6,7 +6,7 @@ AUTOGEN_SCRIPTS_DIR := ${DIR}/autogen_scripts
 nvim:
 	./install_nvim \
 		--output-executable-path ${AUTOGEN_SCRIPTS_DIR}/nvim-python-3.7.9 \
-		--python-version 3.7.9 #--force
+		--python-version 3.7.9 --force
 	sudo ln -sf ${AUTOGEN_SCRIPTS_DIR}/nvim-python-3.7.9 /usr/local/bin/nvim
 
 nvim-convtools:

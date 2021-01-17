@@ -10,4 +10,4 @@ let g:fzf_action = {
   \ 'ctrl-v': 'vsplit' }
 
 let $FZF_DEFAULT_OPTS="--bind ctrl-a:select-all,ctrl-f:preview-page-down,ctrl-b:preview-page-up --ansi"
-let $FZF_DEFAULT_COMMAND='fd --type f --no-ignore --exclude=__pycache__ --exclude=uploaded_files --exclude="ui/dist" --exclude="build/"'
+let $FZF_DEFAULT_COMMAND='fd --type f --ignore-file=.ignore --exclude=__pycache__ --exclude=uploaded_files --exclude="ui/dist" --exclude="build/"'

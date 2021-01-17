@@ -27,13 +27,22 @@ vnoremap <F6> zL
 
 command! W :w
 
+" move between windows
+nnoremap gh <c-w>h
+nnoremap gl <c-w>l
+nnoremap gj <c-w>j
+nnoremap gk <c-w>k
 function! NetrwMapping()
     nnoremap <buffer> gh <c-w>h
     nnoremap <buffer> gl <c-w>l
     nnoremap <buffer> gj <c-w>j
     nnoremap <buffer> gk <c-w>k
-    nmap - <Plug>NetrwBrowseUpDir
+    nnoremap - <Plug>NetrwBrowseUpDir
 endfunction
+augroup netrw_mapping
+    autocmd!
+    autocmd filetype netrw call NetrwMapping()
+augroup END
 
 let g:inflector_mapping = 'gI'
 
@@ -89,16 +98,6 @@ nnoremap <silent><expr> gN IsLocListOpen() ? ":lnfile\<CR>zz" : ":cnfile\<CR>zz"
 nnoremap <silent><expr> gp IsLocListOpen() ? ":lprevious\<CR>zz" : ":cprevious\<CR>zz"
 " go Prev file
 nnoremap <silent><expr> gP IsLocListOpen() ? ":lpfile\<CR>zz" : ":cpfile\<CR>zz"
-
-" move between windows
-nnoremap gh <c-w>h
-nnoremap gl <c-w>l
-nnoremap gj <c-w>j
-nnoremap gk <c-w>k
-augroup netrw_mapping
-    autocmd!
-    autocmd filetype netrw call NetrwMapping()
-augroup END
 
 
 let g:which_key_map.t = { 'name' : '☰ TAB' }
