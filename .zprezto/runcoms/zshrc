@@ -16,10 +16,6 @@ fi
 alias user-config='/usr/bin/git --git-dir=$HOME/own/.user-dotfiles/ --work-tree=$HOME'
 alias host-config='/usr/bin/git --git-dir=$HOME/own/.p65-config/ --work-tree=/'
 
-# sudo cpupower frequency-set -g performance
-# ps aux | grep "Gw2-64.exe" | grep -v grep | awk '{print $2}' | xargs sudo schedtool -F -p 40 -n -4
-# ps aux | grep "wineserver" | grep -v grep | awk '{print $2}' | xargs sudo schedtool -F -p 30 -n -4
-# ps aux | grep "pulseaudio" | grep -v grep | awk '{print $2}' | xargs sudo schedtool -F -p 25 -n -4
 
 # kill picom first
 # ps -eLf | grep wine | grep -v grep | awk '{print $4}' | xargs sudo schedtool -a 0xffffffff -R -p 25
@@ -47,12 +43,12 @@ alias ua-mirrors-us='sudo reflector --verbose --latest 3 --sort rate --protocol 
 alias ua-mirrors-jp='sudo reflector --verbose --latest 3 --sort rate --protocol "http" --country "JP" --connection-timeout 1 --download-timeout 10 --save /etc/pacman.d/mirrorlist'
 alias ua-drop-caches='sudo paccache -rk3; yay -Sc --aur --noconfirm'
 alias ua-update-all='export TMPFILE="$(mktemp)"; \
-	sudo echo 1 > /dev/null; \
+	sudo true; \
 	rate-arch-mirrors --max-delay=21600 | tee -a $TMPFILE \
-	&& sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
-	&& sudo mv $TMPFILE /etc/pacman.d/mirrorlist; \
-	sudo ua-drop-caches;\
-	yay -Syyu --noconfirm'
+	  && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
+	  && sudo mv $TMPFILE /etc/pacman.d/mirrorlist \
+	  && ua-drop-caches \
+	  && yay -Syyu --noconfirm'
 
 
 export AWS_VAULT_SECRET_SERVICE_COLLECTION_NAME="login"
