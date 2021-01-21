@@ -1,0 +1,66 @@
+# [theme]
+# file = "~/.config/i3/i3status-rust.theme"
+
+#plain (default)
+# theme = "solarized-dark"
+# theme = "solarized-light"
+# theme = "slick"
+# theme = "modern"
+# theme = "bad-wolf"
+# theme = "gruvbox-light"
+# theme = "space-villain"
+
+[theme]
+name = "gruvbox-dark"
+[theme.overrides]
+good_bg = "#59590f"
+good_fg = "#ebdbb2"
+
+[icons]
+name = "awesome5"
+
+[[block]]
+block = "cpu"
+interval = 0.7
+format = "{utilization}% {barchart} {frequency}GHz"
+
+[[block]]
+block = "custom"
+interval = 5
+command = ''' cat /sys/class/thermal/thermal_zone0/temp | awk '{printf("%.0f℃", $1/1000)}' '''
+# json = true
+# "echo '{\"icon\":\"temperature-low\",\"state\":\"Idle\", \"text\": \"Danger!\"}'"
+#  Idle, Info, Good, Warning, Critical
+
+[[block]]
+block = "memory"
+display_type = "memory"
+format_mem = "{Mug}G"
+format_swap = "{SUg}G"
+
+# [[block]]
+# block = "battery"
+# interval = 10
+# format = "{percentage}% {time}"
+# device = "BAT1"
+
+[[block]]
+block = "backlight"
+
+# [[block]]
+# block = "sound"
+
+# [[block]]
+# block = "bluetooth"
+# mac = "CC:21:19:A4:AE:73"
+# label = ""
+
+[[block]]
+block = "custom_dbus"
+name = "CurrentKeyboardLayout"
+# qdbus i3.status.rs /CurrentKeyboardLayout i3.status.rs.SetStatus us na na
+
+[[block]]
+block = "time"
+interval = 30
+format = "%a %m/%d %R"

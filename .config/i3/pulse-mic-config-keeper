@@ -1,0 +1,56 @@
+#!/bin/bash
+set -o nounset
+set -o errexit
+
+
+# INPUTS
+MIC_SOURCE__NAME='alsa_input.pci-0000_07_00.6.HiFi__hw_acp__source'
+MIC_SOURCE__VOLUME=160000
+MIC_PROCESSED_SOURCE__NAME='echoCancel_source'
+MIC_PROCESSED_SOURCE__VOLUME=65536
+
+
+get_source_index_by_name() {
+    pacmd list-sources | grep "name: <$1>" -B 1 | grep -oP "(?<=index: )\d+"
+}
+get_source_volume_by_name() {
+    pacmd list-sources \
+        | grep "name: <$1>" -A 50 \
+        | grep -E "^\s+volume:" \
+        | head -n 1 \
+        | grep -oP '(?<=: )([0-9]+)(?= /)' \
+        | head -n 1
+}
+set_source_volume_by_name() {
+    pacmd set-source-volume "$1" "$2"
+}
+ensure_source_volume_by_name() {
+    local current_volume=$(get_source_volume_by_name $1)
+    if (( $current_volume != $2)); then
+        msg "resetting $1 volume to $2 from $current_volume"
+        set_source_volume_by_name $1 $2
+    fi
+}
+
+msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $1"
+}
+
+MIC_SOURCE__INDEX=$(get_source_index_by_name $MIC_SOURCE__NAME)
+MIC_PROCESSED_SOURCE__INDEX=$(get_source_index_by_name $MIC_PROCESSED_SOURCE__NAME)
+
+ensure_source_volume_by_name $MIC_SOURCE__NAME $MIC_SOURCE__VOLUME
+ensure_source_volume_by_name $MIC_PROCESSED_SOURCE__NAME $MIC_PROCESSED_SOURCE__VOLUME
+
+exec 3< <(stdbuf -o0 pactl subscribe)
+while : ; do
+    read -r -t 600 -u 3 line \
+        && echo $line | grep -P "Event 'change' on source #($MIC_SOURCE__INDEX|$MIC_PROCESSED_SOURCE__INDEX)" > /dev/null \
+        && _ex=0 || _ex=$?
+    if (( $_ex == 0 )); then
+        msg "$line"
+        ensure_source_volume_by_name $MIC_SOURCE__NAME $MIC_SOURCE__VOLUME
+        ensure_source_volume_by_name $MIC_PROCESSED_SOURCE__NAME $MIC_PROCESSED_SOURCE__VOLUME
+    fi
+done
+

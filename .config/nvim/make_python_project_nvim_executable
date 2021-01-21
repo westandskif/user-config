@@ -1,0 +1,86 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+source "$(dirname $0)/_base"
+
+while (( "$#" )); do
+  case "$1" in
+    --executable-name)
+      NVIM_EXECUTABLE_NAME=$2
+      shift 2
+      ;;
+      
+    --from-docker-image)
+      DOCKER_IMAGE=$2
+      shift 2
+      ;;
+
+    --python-version)
+      PYTHON_VERSION=$2
+      shift 2
+      ;;
+    --from-venv-path)
+      VENV_PATH=$2
+      shift 2
+      ;;
+    --force)
+      FORCE_NVIM_REINSTALL="--force"
+      shift 1
+      ;;
+    -*|--*=)
+      echo "Error: Unsupported flag $1" >&2
+      exit 1
+      ;;
+    # *) # preserve positional arguments
+    #   PARAMS="$PARAMS $1"
+    #   shift
+    #   ;;
+  esac
+done
+
+create_venv()
+{
+    pyenv install -s $PYTHON_VERSION
+    pyenv rehash
+    PYTHON_PYENV_DIR=$(pyenv prefix $PYTHON_VERSION)
+    PYENV_ENVS_DIR=$(dirname $PYTHON_PYENV_DIR)
+    VENV_PATH="$PYENV_ENVS_DIR/nvim-$PYTHON_VERSION-$NVIM_EXECUTABLE_NAME"
+
+    rm -rf $VENV_PATH
+    $PYTHON_PYENV_DIR/bin/pip install virtualenv
+    $PYTHON_PYENV_DIR/bin/virtualenv \
+        -p $PYTHON_PYENV_DIR/bin/python \
+        $VENV_PATH
+}
+
+if [[ ! -z ${DOCKER_IMAGE:-""} ]]; then
+    python_version_from_docker_image
+    create_venv
+    SITEPACKAGES_PATH=$(find $VENV_PATH -type d -wholename "$VENV_PATH/*/python*/site-packages")
+    python_copy_docker_image_sitepackages
+fi
+
+echo "installing nvim with python $PYTHON_VERSION"
+NVIM_BASE_EXECUTABLE="$AUTOGEN_SCRIPTS_DIR/nvim-python-$PYTHON_VERSION"
+"$NVIM_CONFIG/install_nvim" \
+	--output-executable-path $NVIM_BASE_EXECUTABLE \
+	--python-version $PYTHON_VERSION "${FORCE_NVIM_REINSTALL:-''}"
+
+
+echo "Create executable nvim with python binary set"
+mkdir -p $AUTOGEN_SCRIPTS_DIR
+NVIM_PROJECT_EXECUTABLE="$AUTOGEN_SCRIPTS_DIR/$NVIM_EXECUTABLE_NAME"
+
+_script="#!/bin/bash
+set -o nounset
+set -o errexit
+
+export SITEPACKAGES_PATH=$(find $VENV_PATH -type d -wholename "$VENV_PATH/*/python*/site-packages" -o -wholename "$VENV_PATH/src | paste -sd ':'")
+source $VENV_PATH/bin/activate \\
+    && exec $NVIM_BASE_EXECUTABLE \"\$@\"\n"
+printf "$_script" > $NVIM_PROJECT_EXECUTABLE
+
+chmod 0777 $NVIM_PROJECT_EXECUTABLE
+sudo ln -sf $NVIM_PROJECT_EXECUTABLE /usr/local/bin/$NVIM_EXECUTABLE_NAME 
