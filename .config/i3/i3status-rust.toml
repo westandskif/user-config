@@ -22,15 +22,22 @@ name = "awesome5"
 [[block]]
 block = "cpu"
 interval = 0.7
-format = "{utilization}% {barchart} {frequency}GHz"
+format = "{utilization}% {barchart}"
 
 [[block]]
 block = "custom"
-interval = 5
-command = ''' cat /sys/class/thermal/thermal_zone0/temp | awk '{printf("%.0f℃", $1/1000)}' '''
-# json = true
-# "echo '{\"icon\":\"temperature-low\",\"state\":\"Idle\", \"text\": \"Danger!\"}'"
-#  Idle, Info, Good, Warning, Critical
+interval = 0.7
+command = ''' cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq | sort -r | head -n 1 | awk '{printf("%.1fGhz", $1/1000000)}' '''
+
+[[block]]
+block = "custom"
+interval = 0.7
+command = ''' cat /sys/devices/pci0000:00/0000:00:18.3/hwmon/hwmon3/temp1_input | awk '{printf("%04.1f℃", $1/1000)}' '''
+
+[[block]]
+block = "custom"
+interval = 0.7
+command = ''' cat /sys/devices/pci0000:00/0000:00:08.1/0000:07:00.0/hwmon/hwmon6/power1_average | awk '{printf("%02.0fW", $1/1000000)}' '''
 
 [[block]]
 block = "memory"
@@ -38,22 +45,18 @@ display_type = "memory"
 format_mem = "{Mug}G"
 format_swap = "{SUg}G"
 
-# [[block]]
-# block = "battery"
-# interval = 10
-# format = "{percentage}% {time}"
-# device = "BAT1"
+[[block]]
+block = "battery"
+interval = 10
+format = "{percentage}% {time}"
+device = "BAT0"
 
 [[block]]
 block = "backlight"
+device = "amdgpu_bl0"
 
-# [[block]]
-# block = "sound"
-
-# [[block]]
-# block = "bluetooth"
-# mac = "CC:21:19:A4:AE:73"
-# label = ""
+[[block]]
+block = "sound"
 
 [[block]]
 block = "custom_dbus"
@@ -62,5 +65,5 @@ name = "CurrentKeyboardLayout"
 
 [[block]]
 block = "time"
-interval = 30
+interval = 10
 format = "%a %m/%d %R"

@@ -13,7 +13,7 @@ nvim-convtools:
 	PYTHONPATH=/home/nik/own/convtools/src \
 	./make_python_project_nvim_executable \
 		--executable-name nvim-convtools \
-		--python-version 3.6.10 \
+		--python-version 3.6.12 \
 		--from-venv-path ~/.pyenv/versions/convtools
 
 nvim-aprenita:
