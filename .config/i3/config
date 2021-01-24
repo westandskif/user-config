@@ -241,7 +241,8 @@ exec --no-startup-id blueberry-tray
 exec --no-startup-id ~/.config/i3/pulse-mic-config-keeper
 exec_always --no-startup-id "sleep 5 && /home/nik/.config/i3/i3status-keyboard-layout"
 
-exec_always --no-startup-id xrandr --output eDP-1 --scale 1.5x1.5 --dpi 192
+exec_always --no-startup-id xrandr --output eDP-1 --dpi 192 --scale 1.44427 # for 13px fonts
+
 exec_always --no-startup-id feh --randomize --bg-fill ~/pics/wallpapers/*
 
 assign [class="^Chromium$"] 3
