@@ -14,7 +14,7 @@ set $mod Mod4
 # Font for window titles. Will also be used by the bar unless a different font
 # is used in the bar {} block below.
 
-font pango:serif, Font Awesome 5 Free 10
+font pango:sans, Font Awesome 5 Free 9
 
 default_border pixel 1px
 default_floating_border none
@@ -207,7 +207,7 @@ client.placeholder      #000000 #000000 #EBDBB2 #000000   #000000
 
 client.background       #FFFFFF
 bar {
-    font pango:monospace, Font Awesome 5 Free 10
+    font pango:monospace, Font Awesome 5 Free 9
     position bottom
     status_command i3status-rs ~/.config/i3/i3status-rust.toml
     colors {
@@ -235,14 +235,11 @@ bar {
 # separator_bg: "auto".to_owned(),
 # separator_fg: "auto".to_owned(),
 
-exec --no-startup-id light -S 87
-# exec --no-startup-id feh --bg-fill ~/Pictures/photo-of-starry-night-1421903.jpg
 exec --no-startup-id blueberry-tray
 exec --no-startup-id ~/.config/i3/pulse-mic-config-keeper
 exec_always --no-startup-id "sleep 5 && /home/nik/.config/i3/i3status-keyboard-layout"
 
-exec_always --no-startup-id xrandr --output eDP-1 --dpi 192 --scale 1.44427 # for 13px fonts
-
+exec --no-startup-id light -S 87
 exec_always --no-startup-id feh --randomize --bg-fill ~/pics/wallpapers/*
 
 assign [class="^Chromium$"] 3
@@ -254,8 +251,8 @@ assign [class="^Skype$"] 6
 assign [class="^TelegramDesktop$"] 7
 assign [class="^ViberPC$"] 7
 assign [class="^Spotify Premium$"] 8
-# bindsym $mod+Mod1+3 exec --no-startup-id prime-run brave --force-device-scale-factor=2.5 --use-gl=desktop
-bindsym $mod+Mod1+3 exec --no-startup-id brave --force-device-scale-factor=2.5
+
+bindsym $mod+Mod1+3 exec --no-startup-id brave
 bindsym $mod+Mod1+4 exec --no-startup-id BROWSER=brave slack
 bindsym $mod+Mod1+5 exec --no-startup-id evolution
 bindsym $mod+Mod1+6 exec --no-startup-id discord; exec --no-startup-id skypeforlinux

@@ -20,6 +20,11 @@ good_fg = "#ebdbb2"
 name = "awesome5"
 
 [[block]]
+block = "custom"
+interval = 0.7
+command = ''' cat /sys/class/drm/card0/device/gpu_busy_percent | awk '{print "GPU: "$1 "%"}' '''
+
+[[block]]
 block = "cpu"
 interval = 0.7
 format = "{utilization}% {barchart}"
@@ -32,7 +37,7 @@ command = ''' cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq | sort -
 [[block]]
 block = "custom"
 interval = 0.7
-command = ''' cat /sys/devices/pci0000:00/0000:00:18.3/hwmon/hwmon3/temp1_input | awk '{printf("%04.1f℃", $1/1000)}' '''
+command = ''' cat /sys/class/hwmon/hwmon4/temp1_input | awk '{printf("%04.1f℃", $1/1000)}' '''
 
 [[block]]
 block = "custom"
