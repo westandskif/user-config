@@ -239,7 +239,7 @@ exec --no-startup-id blueberry-tray
 exec --no-startup-id "sleep 5 && /home/nik/.config/i3/pulse-mic-config-keeper"
 exec_always --no-startup-id "sleep 5 && /home/nik/.config/i3/i3status-keyboard-layout"
 
-exec --no-startup-id light -S 87
+exec --no-startup-id light -S 83
 exec_always --no-startup-id feh --randomize --bg-fill ~/pics/wallpapers/*
 
 assign [class="^Chromium$"] 3
