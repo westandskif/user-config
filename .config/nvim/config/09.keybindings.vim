@@ -28,8 +28,8 @@ vnoremap <F6> zL
 command! W :w
 
 " move between windows
-nnoremap gh <c-w>h
-nnoremap gl <c-w>l
+nnoremap <silent> gh <c-w>h:exe "vertical resize " . (&columns / 2 + 10)<CR>
+nnoremap <silent> gl <c-w>l:exe "vertical resize " . (&columns / 2 + 10)<CR>
 nnoremap gj <c-w>j
 nnoremap gk <c-w>k
 function! NetrwMapping()
@@ -37,7 +37,7 @@ function! NetrwMapping()
     nnoremap <buffer> gl <c-w>l
     nnoremap <buffer> gj <c-w>j
     nnoremap <buffer> gk <c-w>k
-    nnoremap - <Plug>NetrwBrowseUpDir
+    nmap <buffer> - <Plug>NetrwBrowseUpDir
 endfunction
 augroup netrw_mapping
     autocmd!

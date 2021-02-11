@@ -99,8 +99,5 @@ load-module module-remap-source master=ladspa_mic_out.monitor source_name=user_b
 
 # SETTINGS DEFAULTS
 # ====
-
-# set-default-source user_beamforming_mic__source
-# set-default-sink ladspa_speaker_in
 set-default-source user_beamforming_mic__eq__source
 set-default-sink user_echoless_generic__sink
