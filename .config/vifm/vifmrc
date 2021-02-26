@@ -407,8 +407,10 @@ set vifminfo=dhistory,savedirs,chistory,state,tui,shistory,
 " ------------------------------------------------------------------------------
 
 " OWN
-nnoremap gl <c-w>l
 nnoremap gh <c-w>h
+nnoremap gj <c-w>j
+nnoremap gk <c-w>k
+nnoremap gl <c-w>l
 
 " Sample mappings
 

@@ -21,14 +21,14 @@ function! AutoImport(name)
     endfor
     " prepare import strings
     let matched_files = map(matched_files, {i, x -> PathAsImport(x).a:name})
-    let l:size = len(matched_files)
-    if l:size < 1
+    let size = len(matched_files)
+    if size < 1
         echohl WarningMsg
         echo "[AutoImport] Not found!"
         echohl None
         return
     endif
-    if l:size == 1
+    if size == 1
         call s:do_import(matched_files[0])
         return
     endif

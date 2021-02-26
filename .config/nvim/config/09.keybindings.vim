@@ -119,20 +119,20 @@ nnoremap <leader>jr :e.<cr>
 
 function! InputStr(prompt_str)
     call inputsave()
-    let l:input_str =input(a:prompt_str)
+    let input_str =input(a:prompt_str)
     call inputrestore()
-    let @i = l:input_str
-    return l:input_str
+    let @i = input_str
+    return input_str
 endfunction
 function! VimEscape(str, symbols_to_escape)
-    let l:_symbols_to_escape = a:symbols_to_escape
-    let l:str = a:str
+    let _symbols_to_escape = a:symbols_to_escape
+    let str = a:str
     " single quote is the exception
-    if stridx(l:_symbols_to_escape, "'") != -1
-        let l:_symbols_to_escape = substitute(l:_symbols_to_escape, "'", "", "g")
-        let l:str = substitute(a:str, "'", "''", "g")
+    if stridx(_symbols_to_escape, "'") != -1
+        let _symbols_to_escape = substitute(_symbols_to_escape, "'", "", "g")
+        let str = substitute(a:str, "'", "''", "g")
     endif
-    return escape(l:str, l:_symbols_to_escape)
+    return escape(str, _symbols_to_escape)
 endfunction
 function! HistAddAndReturn(command_str)
     call histadd("cmd", a:command_str)
@@ -140,9 +140,9 @@ function! HistAddAndReturn(command_str)
 endfunction
 
 function! RunRgWithOpts(command_suffix)
-    let l:command = 'rg --column --line-number --no-heading --color=always --sort=path ' . a:command_suffix
-    let l:fzf_args = [
-                \l:command,
+    let command = 'rg --column --line-number --no-heading --color=always --sort=path ' . a:command_suffix
+    let fzf_args = [
+                \command,
                 \1,
                 \fzf#vim#with_preview({'options': [
                     \'--info=inline',
@@ -154,7 +154,7 @@ function! RunRgWithOpts(command_suffix)
                     \'bat --color=always --style=header,grid --line-range :300 {}'
                 \]}),
                 \0]
-    return call('fzf#vim#grep', l:fzf_args)
+    return call('fzf#vim#grep', fzf_args)
 endfunction
 
 function! VisualToRegI()

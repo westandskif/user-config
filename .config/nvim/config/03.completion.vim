@@ -58,20 +58,20 @@ function! NeomakeQf(lint_config)
 
             for maker_name in needed_makers
                 if !has_key(maker_name_to_maker, maker_name)
-                    let l:maker_name_to_maker[maker_name] = deepcopy(neomake#GetMaker(maker_name, file_filetype))
-                    let l:maker_name_to_maker[maker_name].append_file = 0
+                    let maker_name_to_maker[maker_name] = deepcopy(neomake#GetMaker(maker_name, file_filetype))
+                    let maker_name_to_maker[maker_name].append_file = 0
                 endif
-                let maker = l:maker_name_to_maker[maker_name]
+                let maker = maker_name_to_maker[maker_name]
                 call add(maker.args, file_name)
             endfor
         endif
         let buffers[key] = ''
     endfor
-    call neomake#Make({'enabled_makers': values(l:maker_name_to_maker)})
+    call neomake#Make({'enabled_makers': values(maker_name_to_maker)})
 endfunction
 
 function! RefreshSitePackageTags()
-    let l:text =<< trim END
+    let text =<< trim END
     import sys
     bad_endings = (".zip", "dynload")
     for path in sys.path:
@@ -79,19 +79,19 @@ function! RefreshSitePackageTags()
             continue
         print(path)
     END
-    let l:sitepackages = systemlist('python -', l:text)
-    for path in l:sitepackages
+    let sitepackages = systemlist('python -', l:text)
+    for path in sitepackages
         if stridx(&tags, path) == -1
             let &tags = &tags.path."/tags,"
         endif
     endfor
-    return l:sitepackages
+    return sitepackages
 endfunction
 autocmd FileType python :call RefreshSitePackageTags()
 
 function! GenerateSitePackageTags()
-    let l:sitepackages = RefreshSitePackageTags()
-    for path in l:sitepackages
+    let sitepackages = RefreshSitePackageTags()
+    for path in sitepackages
         call system("bash -s", "pushd ".path." && rm -f tags && ctags -R --languages=python --exclude=site-packages --exclude=test && sed -i '/\/\^ /d' tags && popd")
     endfor
 endfunction
