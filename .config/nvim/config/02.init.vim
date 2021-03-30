@@ -1,7 +1,6 @@
 autocmd ColorScheme * highlight SpellBad cterm=underline gui=underline ctermfg=243 guifg=#727272
 
 colorscheme space_vim_theme
-" colorscheme darcula
 
 " Protect changes between writes. Default values of
 " updatecount (200 keystrokes) and updatetime

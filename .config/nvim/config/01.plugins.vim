@@ -29,9 +29,9 @@ Plug 'autozimu/LanguageClient-neovim', {
     \ 'branch': 'next',
     \ 'do': 'bash install.sh',
     \ }
+Plug 'hashivim/vim-terraform', {'for': 'terraform'}
 
 Plug 'wellle/context.vim'
-Plug 'ruslan-savina/spelling'
 
 Plug 'farfanoide/inflector.vim'
 

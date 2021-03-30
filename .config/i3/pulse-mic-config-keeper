@@ -5,7 +5,7 @@ set -o errexit
 
 # INPUTS
 MIC_SOURCE__NAME='alsa_input.pci-0000_07_00.6.HiFi__hw_acp__source'
-MIC_SOURCE__VOLUME=160000
+MIC_SOURCE__VOLUME=150000
 # MIC_PROCESSED_SOURCE__NAME='user_beamforming_mic__source'
 MIC_PROCESSED_SOURCE__NAME='user_beamforming_mic__eq__source'
 MIC_PROCESSED_SOURCE__VOLUME=65536

@@ -64,7 +64,6 @@ load-module module-systemd-login
 
 
 
-
 # CREATING BEAMFORMING MIC & ECHO-CANCELLED SINK:
 #   user_beamforming_mic__source - synthetic mic, which uses beamforming and is to be used as the default source
 #   user_echoless_generic__sink - echo cancelled output to be used as the default sink
@@ -76,10 +75,10 @@ load-module module-echo-cancel source_master='alsa_input.pci-0000_07_00.6.HiFi__
 #   user_beamforming_mic__eq__source - source after equalizer
 # ====
 load-module module-null-sink sink_name=ladspa_mic_out
-load-module module-ladspa-sink sink_name=ladspa_mic_in sink_master=ladspa_mic_out plugin=mbeq_1197 label=mbeq control=3.0,2.5,2,1.5,0.75,0.0,0.0,1.2,2.4,-1.0,-3.0,-10.0,-8.0,-7.0,-7.0
+load-module module-ladspa-sink sink_name=ladspa_mic_in sink_master=ladspa_mic_out plugin=mbeq_1197 label=mbeq control=6.0,6.0,6.0,6.0,6.0,6.0,6.0,5.5,3.8,0.4,-1.9,-3.2,-1.6,-1.1,2.6
+# load-module module-ladspa-sink sink_name=ladspa_mic_in sink_master=ladspa_mic_out plugin=mbeq_1197 label=mbeq control=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 load-module module-loopback source=user_beamforming_mic__source sink=ladspa_mic_in source_dont_move=true sink_dont_move=true
 load-module module-remap-source master=ladspa_mic_out.monitor source_name=user_beamforming_mic__eq__source source_properties='device.description="User Beamforming Mic Eq"'
-
 
 # UNCOMMENT TO LISTEN TO YOUR VOICE AND TUNE control dB ABOVE
 #   To restart:
@@ -99,5 +98,8 @@ load-module module-remap-source master=ladspa_mic_out.monitor source_name=user_b
 
 # SETTINGS DEFAULTS
 # ====
+# set-default-source alsa_input.pci-0000_07_00.6.HiFi__hw_acp__source
+# set-default-source user_beamforming_mic__source
+
 set-default-source user_beamforming_mic__eq__source
 set-default-sink user_echoless_generic__sink

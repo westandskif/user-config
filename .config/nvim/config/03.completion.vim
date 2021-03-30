@@ -10,9 +10,14 @@ let g:LanguageClient_serverCommands = {
     \ }
 let g:LanguageClient_loggingFile =  expand('/tmp/nvim-LanguageClient.log')
 let g:LanguageClient_serverStderr = expand('/tmp/nvim-LanguageServer.log')
+let g:LanguageClient_showCompletionDocs = 0
+let g:LanguageClient_hoverPreview = 'Always'
 
 let g:neoformat_run_all_formatters = 1
 let g:neoformat_enabled_python = ['isort', 'black']
+let g:neoformat_hcl_hclfmt = {'exe': 'hclfmt'}
+let g:neoformat_enabled_hcl = ['hclfmt']
+
 let g:neomake_python_enabled_makers = ['flake8', 'pylint']
 let g:neomake_open_list = 2
 let g:neomake_virtualtext_current_error = 0

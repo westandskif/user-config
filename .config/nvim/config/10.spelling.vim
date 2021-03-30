@@ -1,5 +1,6 @@
-" Spelling
-augroup SpellingUpdateGroup
-    autocmd!
-	autocmd BufEnter,BufWrite,WinEnter,CursorHold *.py,*.vim,*.html,*.js,*.rs SpellingUpdate
-augroup END
+set spell spelllang=en_us
+set spelloptions=camel
+set spellcapcheck=
+autocmd FileType * syntax spell toplevel
+
+set spellfile=./en.utf-8.add
