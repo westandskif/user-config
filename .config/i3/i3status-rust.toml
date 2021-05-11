@@ -27,7 +27,7 @@ command = ''' cat /sys/class/drm/card0/device/gpu_busy_percent | awk '{print "GP
 [[block]]
 block = "cpu"
 interval = 0.7
-format = "{utilization}% {barchart}"
+format = "{utilization} {barchart}"
 
 [[block]]
 block = "custom"
@@ -42,18 +42,17 @@ command = ''' cat /sys/class/hwmon/hwmon4/temp1_input | awk '{printf("%04.1f℃"
 [[block]]
 block = "custom"
 interval = 0.7
-command = ''' cat /sys/devices/pci0000:00/0000:00:08.1/0000:07:00.0/hwmon/hwmon6/power1_average | awk '{printf("%02.0fW", $1/1000000)}' '''
+command = ''' cat /sys/class/hwmon/hwmon6/power1_average | awk '{printf("%02.0fW", $1/1000)}' '''
 
 [[block]]
 block = "memory"
 display_type = "memory"
-format_mem = "{Mug}G"
-format_swap = "{SUg}G"
+format_mem = "{mem_used;M}"
 
 [[block]]
 block = "battery"
 interval = 10
-format = "{percentage}% {time}"
+format = "{percentage} {time}"
 device = "BAT0"
 
 [[block]]

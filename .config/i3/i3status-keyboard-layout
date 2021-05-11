@@ -4,4 +4,4 @@ set -o errexit
 
 GROUP_NUMBER=$(xset -q | grep -E -o "Group 2:\s+on" &>/dev/null && echo "2" || echo "1")
 CURRENT_LAYOUT=$(setxkbmap -query | awk '/layout/ {print $2}' | cut -d "," -f "$GROUP_NUMBER")
-qdbus i3.status.rs /CurrentKeyboardLayout i3.status.rs.SetStatus $CURRENT_LAYOUT na na
+qdbus i3.status.rs /CurrentKeyboardLayout i3.status.rs.SetStatus $CURRENT_LAYOUT "" "na"

@@ -39,6 +39,6 @@ Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
 let g:Hexokinase_ftEnabled = ['less']
 let g:Hexokinase_highlighters = ['backgroundfull']
 
-
+" Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 
 call plug#end()

@@ -60,10 +60,9 @@ let g:which_key_map.v.Q = 'Quit and make session'
 let g:which_key_map.v.R = 'Restore session'
 nnoremap <leader>ve :tabnew ~/.config/nvim/config<cr>
 nnoremap <leader>vs :source ~/.config/nvim/init.vim<cr>
-nnoremap <leader>vq :qa<cr>
-nnoremap <leader>vC :mksession! .s.vim<cr>
-nnoremap <leader>vQ :mksession! .s.vim<cr>:qa<cr>
-nnoremap <leader>vR :source .s.vim<cr>
+nnoremap <leader>vc :mksession! .s.vim<cr>
+nnoremap <leader>vq :mksession! .s.vim<cr>:qa<cr>
+nnoremap <leader>vr :source .s.vim<cr>
 
 
 let g:which_key_map.m = {'name': '☰ MODE'}
