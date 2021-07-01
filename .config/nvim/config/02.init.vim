@@ -1,6 +1,22 @@
-autocmd ColorScheme * highlight SpellBad cterm=underline gui=underline ctermfg=243 guifg=#727272
+" let g:gh_color = "soft"
+" colorscheme ghdark
+function! TweakHighlights()
+    hi! SpellBad cterm=underline gui=underline ctermfg=243 guifg=#727272
+    " hi! GhGreen cterm=NONE gui=NONE ctermfg=114 guifg=#88a970
+    " hi! GhBase5 cterm=NONE gui=NONE ctermfg=114 guifg=#d5d9dd
+    " hi! Normal cterm=NONE gui=NONE ctermfg=114 guifg=#d5d9dd
+    " hi! link Boolean GhOrange
+    " hi! link Identifier GhBase4
+    " hi! link String GhGreen
+    " hi! link TabLine GhBase3
+    " hi! link TabLineFill GhBase0
+    " hi! link TabLineSel GhBlue
+    " hi! link Type GhOrange
+endfunction
+autocmd ColorScheme * call TweakHighlights()
 
 colorscheme space_vim_theme
+
 
 " Protect changes between writes. Default values of
 " updatecount (200 keystrokes) and updatetime

@@ -95,3 +95,15 @@ autocmd FileType python :call PythonSpecifics()
 " let g:polyglot_disabled = ['python-indent']
 let g:python_pep8_indent_searchpair_timeout = 20
 
+
+" let g:python_summator_code =<< END
+" import sys
+" print(sum(int(line) for line in sys.stdin))
+" 
+" END
+" augroup useful_python_scripts
+"   autocmd!
+"   au FileType python :let g:python_summator=trim(system("mktemp"))
+"   au FileType python :call writefile(g:python_summator_code, g:python_summator, "b")
+"   au FileType python :vnoremap <expr><F7> "!python " . g:python_summator . " \<Enter>"
+" augroup END

@@ -13,7 +13,6 @@ Plug 'bling/vim-airline'
 
 " THEMES
 Plug 'liuchengxu/space-vim-theme'
-" Plug 'doums/darcula'
 
 Plug 'liuchengxu/vim-which-key'
 Plug 'sheerun/vim-polyglot'

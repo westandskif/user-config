@@ -1,0 +1,70 @@
+#!/bin/bash
+set -o nounset
+set -o errexit
+
+msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $1"
+}
+get_source_volume_by_name() {
+    pactl list sources \
+        | grep "Name: from_jack_dmic" -A 15 \
+        | grep "  Volume:" \
+        | grep -oP "(?<=: )\d+"
+}
+ensure_source_volume_by_name() {
+    local current_volume=$(get_source_volume_by_name "$1")
+    if [[ $current_volume != $2 ]]; then
+        pactl set-source-volume "$1" "$2"
+    fi
+}
+
+alsactl kill rescan; systemctl --user restart pipewire.service pipewire-pulse.service pipewire-media-session.service
+sleep 3
+
+MIC_DEVICE="alsa_input.pci-0000_07_00.5-platform-acp_pdm_mach.0.unknown"
+MIC_DEVICE_DESC="Raven/Raven2/FireFlight/Renoir Audio Processor"
+FOR_JACK_DMIC_SINK="for_jack_dmic_sink"
+DMIC_SOURCE="from_jack_dmic"
+
+MIC_DEVICE_VOLUME=65536
+DMIC_SOURCE_VOLUME=150000
+
+pactl load-module module-null-sink sink_name="${FOR_JACK_DMIC_SINK}" object.linger=1 media.class=Audio/Sink channel_map=FL,FR
+
+pw-jack jack_connect "${MIC_DEVICE_DESC}:capture_2" "${FOR_JACK_DMIC_SINK} Audio/Sink sink:playback_1"
+pw-jack jack_connect "${MIC_DEVICE_DESC}:capture_1" "${FOR_JACK_DMIC_SINK} Audio/Sink sink:playback_2"
+
+pactl set-default-source "$FOR_JACK_DMIC_SINK.monitor"
+pactl load-module module-remap-source \
+    master="${FOR_JACK_DMIC_SINK}.monitor" \
+    source_name="${DMIC_SOURCE}" \
+    master_channel_map=aux0,aux1 \
+    channel_map=front-left,front-right \
+    channels=2 \
+    remix=no 
+pactl set-default-source "${DMIC_SOURCE}"
+
+
+
+ensure_source_volume_by_name $MIC_DEVICE $MIC_DEVICE_VOLUME
+ensure_source_volume_by_name $DMIC_SOURCE $DMIC_SOURCE_VOLUME
+
+
+exec 3< <(stdbuf -o0 pw-mon)
+
+while : ; do
+    read -r -t 600 -u 3 line \
+        && echo $line | grep -P "($MIC_DEVICE|$DMIC_SOURCE)" > /dev/null \
+        && _ex=0 || _ex=$?
+    if (( $_ex == 0 )); then
+        msg "$line"
+        ensure_source_volume_by_name $MIC_DEVICE $MIC_DEVICE_VOLUME
+        ensure_source_volume_by_name $DMIC_SOURCE $DMIC_SOURCE_VOLUME
+    fi
+done
+
+
+amixer -c1 sset 'Master' 75%
+
+amixer -c1 sset 'Speaker' 0
+amixer -c1 sset 'Headphone' 100%

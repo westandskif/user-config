@@ -1,8 +1,8 @@
 font:
+  size: 9
   normal:
     family: Meslo LG S DZ
     style: Regular
-  size: 9
 
 # background_opacity: 1
 # Colors (Dracula)

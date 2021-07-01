@@ -1,7 +1,7 @@
 [[ -f ~/.Xresources ]] && xrdb -merge -I$HOME ~/.Xresources
 
 # xev | grep -A 10 KeyPress
-xmodmap -e "keycode 107 = NoSymbol"
+# xmodmap -e "keycode 107 = NoSymbol NoSymbol NoSymbol NoSymbol NoSymbol NoSymbol"
 
 dbus-update-activation-environment --systemd DBUS_SESSION_BUS_ADDRESS DISPLAY XAUTHORITY
 
