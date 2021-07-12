@@ -48,7 +48,7 @@ install_nvim_if_not_exists()
     curl \
         -fLo \
         "$NVIM_ROOT/nvim-linux64.tar.gz" \
-        https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+        https://github.com/neovim/neovim/releases/download/v0.5.0/nvim-linux64.tar.gz
     tar -xzf "$NVIM_ROOT/nvim-linux64.tar.gz" -C "$NVIM_ROOT"
     rm "$NVIM_ROOT/nvim-linux64.tar.gz"
 
