@@ -46,10 +46,10 @@ exec_always --no-startup-id "sleep 5 && ~/.config/i3/i3status-keyboard-layout"
 
 # Use pactl to adjust volume in PulseAudio.
 set $refresh_i3status killall -SIGUSR1 i3status
-bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume alsa_output.pci-0000_07_00.6.analog-stereo +5% && $refresh_i3status
-bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume alsa_output.pci-0000_07_00.6.analog-stereo -5% && $refresh_i3status
-bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute alsa_output.pci-0000_07_00.6.analog-stereo toggle && $refresh_i3status
-bindsym XF86AudioMicMute exec --no-startup-id pactl set-source-mute alsa_input.pci-0000_07_00.5-platform-acp_pdm_mach.0.stereo-fallback toggle && $refresh_i3status
+bindsym XF86AudioRaiseVolume exec --no-startup-id amixer -c1 sset Master 5%+ && $refresh_i3status
+bindsym XF86AudioLowerVolume exec --no-startup-id amixer -c1 sset Master 5%- && $refresh_i3status
+bindsym XF86AudioMute exec --no-startup-id /home/nik/.config/i3/audio-helper toggle-speaker && $refresh_i3status
+bindsym XF86AudioMicMute exec --no-startup-id /home/nik/.config/i3/audio-helper toggle-mic && $refresh_i3status
 
 bindsym XF86MonBrightnessUp exec --no-startup-id sudo light -A 1
 bindsym XF86MonBrightnessDown exec --no-startup-id sudo light -U 1
@@ -237,7 +237,7 @@ bar {
 
 exec --no-startup-id blueberry-tray
 # exec --no-startup-id "sleep 5 && /home/nik/.config/i3/pulse-mic-config-keeper"
-exec --no-startup-id "sleep 5 && /home/nik/.config/i3/pipewire-config-keeper"
+exec --no-startup-id "sleep 0.5 && /home/nik/.config/i3/audio-helper set-volume-defaults && /home/nik/.config/i3/audio-helper set-up-mic-n-keep-volume"
 exec_always --no-startup-id "sleep 5 && /home/nik/.config/i3/i3status-keyboard-layout"
 
 exec --no-startup-id light -S 83

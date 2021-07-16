@@ -1,0 +1,145 @@
+#!/bin/bash
+set -o nounset
+set -o errexit
+
+CURRENT_MODE=0
+
+MODE_SET_UP_MIC_N_KEEP_VOLUME=1
+MODE_TOGGLE_MIC=2
+MODE_TOGGLE_SPEAKER=3
+MODE_SET_VOLUME_DEFAULTS=4
+
+while (( "$#" )); do
+    case "$1" in
+        set-up-mic-n-keep-volume)
+            CURRENT_MODE=$MODE_SET_UP_MIC_N_KEEP_VOLUME
+            shift 1
+            ;;
+        toggle-mic)
+            CURRENT_MODE=$MODE_TOGGLE_MIC
+            shift 1
+            ;;
+        toggle-speaker)
+            CURRENT_MODE=$MODE_TOGGLE_SPEAKER
+            shift 1
+            ;;
+        set-volume-defaults)
+            CURRENT_MODE=$MODE_SET_VOLUME_DEFAULTS
+            shift 1
+            ;;
+        *)
+            echo "unknown arguments: $#"
+            exit 1
+            ;;
+    esac
+done
+
+msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $1"
+}
+get_source_volume_by_name() {
+    pactl list sources \
+        | grep "Name: from_jack_dmic" -A 15 \
+        | grep "  Volume:" \
+        | grep -oP "(?<=: )\d+"
+}
+ensure_source_volume_by_name() {
+    local current_volume=$(get_source_volume_by_name "$1")
+    if [[ $current_volume != $2 ]]; then
+        pactl set-source-volume "$1" "$2"
+    fi
+}
+
+MIC_DEVICE="alsa_input.pci-0000_07_00.5-platform-acp_pdm_mach.0.unknown"
+MIC_DEVICE_DESC="Raven/Raven2/FireFlight/Renoir Audio Processor"
+FOR_JACK_DMIC_SINK="for_jack_dmic_sink"
+DMIC_SOURCE="from_jack_dmic"
+
+set_up_mic_n_keep_volume() {
+    alsactl kill rescan; systemctl --user restart pipewire.service pipewire-pulse.service pipewire-media-session.service
+    sleep 3
+    
+    
+    MIC_DEVICE_VOLUME=65536
+    DMIC_SOURCE_VOLUME=150000
+    
+    pactl load-module module-null-sink sink_name="${FOR_JACK_DMIC_SINK}" object.linger=1 media.class=Audio/Sink channel_map=FL,FR
+    
+    pw-jack jack_connect "${MIC_DEVICE_DESC}:capture_2" "${FOR_JACK_DMIC_SINK} Audio/Sink sink:playback_1"
+    pw-jack jack_connect "${MIC_DEVICE_DESC}:capture_1" "${FOR_JACK_DMIC_SINK} Audio/Sink sink:playback_2"
+    
+    pactl set-default-source "$FOR_JACK_DMIC_SINK.monitor"
+    pactl load-module module-remap-source \
+        master="${FOR_JACK_DMIC_SINK}.monitor" \
+        source_name="${DMIC_SOURCE}" \
+        master_channel_map=aux0,aux1 \
+        channel_map=front-left,front-right \
+        channels=2 \
+        remix=no 
+    pactl set-default-source "${DMIC_SOURCE}"
+    
+    
+    
+    ensure_source_volume_by_name $MIC_DEVICE $MIC_DEVICE_VOLUME
+    ensure_source_volume_by_name $DMIC_SOURCE $DMIC_SOURCE_VOLUME
+    
+    
+    exec 3< <(stdbuf -o0 pw-mon)
+    
+    while : ; do
+        read -r -t 600 -u 3 line \
+            && echo $line | grep -P "($MIC_DEVICE|$DMIC_SOURCE)" > /dev/null \
+            && _ex=0 || _ex=$?
+        if (( $_ex == 0 )); then
+            msg "$line"
+            ensure_source_volume_by_name $MIC_DEVICE $MIC_DEVICE_VOLUME
+            ensure_source_volume_by_name $DMIC_SOURCE $DMIC_SOURCE_VOLUME
+        fi
+    done
+}
+
+set_volume_defaults() {
+    amixer -c1 sset 'Master' 70%
+    
+    amixer -c1 sset 'Speaker' 100%
+    amixer -c1 sset 'Speaker' on
+
+    amixer -c1 sset 'Headphone' 100%
+
+    amixer -c1 sset 'Mic Mute-LED Mode' 'Off'
+}
+
+toggle_speaker() {
+    amixer -c1 sset 'Speaker' toggle
+}
+
+toggle_mic() {
+    pactl set-source-mute "$DMIC_SOURCE" toggle
+    local mic_mute_mode=$(pactl list sources \
+        | grep from_jack_dmic -A 10 \
+        | grep -oP "(?<=Mute: )\w+")
+    case "$mic_mute_mode" in
+        yes)
+            local mode_to_set='On'
+            ;;
+        *)
+            local mode_to_set='Off'
+            ;;
+    esac
+    amixer -c1 sset 'Mic Mute-LED Mode' "$mode_to_set" > /dev/null
+}
+
+case $CURRENT_MODE in
+    $MODE_SET_UP_MIC_N_KEEP_VOLUME)
+        set_up_mic_n_keep_volume
+        ;;
+    $MODE_TOGGLE_MIC)
+        toggle_mic
+        ;;
+    $MODE_SET_VOLUME_DEFAULTS)
+        set_volume_defaults
+        ;;
+    $MODE_TOGGLE_SPEAKER)
+        toggle_speaker
+        ;;
+esac

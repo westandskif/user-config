@@ -61,8 +61,9 @@ device = "amdgpu_bl0"
 
 [[block]]
 block = "sound"
-driver = "pulseaudio"
-name = "alsa_output.pci-0000_07_00.6.analog-stereo"
+driver = "alsa"
+device = "hw:1"
+name = "Master"
 format = "{volume}"
 
 [[block]]
