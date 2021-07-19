@@ -8,6 +8,9 @@ MODE_SET_UP_MIC_N_KEEP_VOLUME=1
 MODE_TOGGLE_MIC=2
 MODE_TOGGLE_SPEAKER=3
 MODE_SET_VOLUME_DEFAULTS=4
+MODE_SET_VOLUME=5
+MODE_GET_VOLUME=6
+
 
 while (( "$#" )); do
     case "$1" in
@@ -25,6 +28,15 @@ while (( "$#" )); do
             ;;
         set-volume-defaults)
             CURRENT_MODE=$MODE_SET_VOLUME_DEFAULTS
+            shift 1
+            ;;
+        set-volume)
+            CURRENT_MODE=$MODE_SET_VOLUME
+            VOLUME_TO_SET=$2
+            shift 2
+            ;;
+        get-volume)
+            CURRENT_MODE=$MODE_GET_VOLUME
             shift 1
             ;;
         *)
@@ -98,19 +110,32 @@ set_up_mic_n_keep_volume() {
     done
 }
 
+SPEAKER_CARD_NUMBER=$(aplay -l | grep Generic_1 | grep -oP "(?<=card )\d+")
+
 set_volume_defaults() {
-    amixer -c1 sset 'Master' 70%
+    set_volume 70%
     
-    amixer -c1 sset 'Speaker' 100%
-    amixer -c1 sset 'Speaker' on
+    amixer -c "$SPEAKER_CARD_NUMBER" sset 'Speaker' 100%
+    amixer -c "$SPEAKER_CARD_NUMBER" sset 'Speaker' on
 
-    amixer -c1 sset 'Headphone' 100%
+    amixer -c "$SPEAKER_CARD_NUMBER" sset 'Headphone' 100%
 
-    amixer -c1 sset 'Mic Mute-LED Mode' 'Off'
+    amixer -c "$SPEAKER_CARD_NUMBER" sset 'Mic Mute-LED Mode' 'Off'
+}
+set_volume() {
+    amixer -c "$SPEAKER_CARD_NUMBER" sset 'Master' "$1"
+    # busctl --user call i3.status.rs /CurrentMasterVolume i3.status.rs SetStatus sss "$(get_volume)" "" ""
+}
+get_volume() {
+    amixer -c "$SPEAKER_CARD_NUMBER" \
+        | grep Master -A 4 \
+        | grep "Mono: Playback" \
+        | awk '{print $4}' \
+        | tr -d "[]"
 }
 
 toggle_speaker() {
-    amixer -c1 sset 'Speaker' toggle
+    amixer -c "$SPEAKER_CARD_NUMBER" sset 'Speaker' toggle
 }
 
 toggle_mic() {
@@ -126,7 +151,7 @@ toggle_mic() {
             local mode_to_set='Off'
             ;;
     esac
-    amixer -c1 sset 'Mic Mute-LED Mode' "$mode_to_set" > /dev/null
+    amixer -c "$SPEAKER_CARD_NUMBER" sset 'Mic Mute-LED Mode' "$mode_to_set" > /dev/null
 }
 
 case $CURRENT_MODE in
@@ -138,6 +163,12 @@ case $CURRENT_MODE in
         ;;
     $MODE_SET_VOLUME_DEFAULTS)
         set_volume_defaults
+        ;;
+    $MODE_SET_VOLUME)
+        set_volume "$VOLUME_TO_SET"
+        ;;
+    $MODE_GET_VOLUME)
+        get_volume
         ;;
     $MODE_TOGGLE_SPEAKER)
         toggle_speaker

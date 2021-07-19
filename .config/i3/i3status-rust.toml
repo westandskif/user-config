@@ -59,6 +59,10 @@ device = "BAT0"
 block = "backlight"
 device = "amdgpu_bl0"
 
+# [[block]]
+# block = "custom_dbus"
+# name = "UDMasterVolume"
+
 [[block]]
 block = "sound"
 driver = "alsa"
@@ -68,7 +72,7 @@ format = "{volume}"
 
 [[block]]
 block = "custom_dbus"
-name = "CurrentKeyboardLayout"
+name = "UDKeyboardLayout"
 # qdbus i3.status.rs /CurrentKeyboardLayout i3.status.rs.SetStatus us na na
 
 [[block]]

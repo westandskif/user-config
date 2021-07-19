@@ -46,8 +46,8 @@ exec_always --no-startup-id "sleep 5 && ~/.config/i3/i3status-keyboard-layout"
 
 # Use pactl to adjust volume in PulseAudio.
 set $refresh_i3status killall -SIGUSR1 i3status
-bindsym XF86AudioRaiseVolume exec --no-startup-id amixer -c1 sset Master 5%+ && $refresh_i3status
-bindsym XF86AudioLowerVolume exec --no-startup-id amixer -c1 sset Master 5%- && $refresh_i3status
+bindsym XF86AudioRaiseVolume exec --no-startup-id /home/nik/.config/i3/audio-helper set-volume 5%+ && $refresh_i3status
+bindsym XF86AudioLowerVolume exec --no-startup-id /home/nik/.config/i3/audio-helper set-volume 5%- && $refresh_i3status
 bindsym XF86AudioMute exec --no-startup-id /home/nik/.config/i3/audio-helper toggle-speaker && $refresh_i3status
 bindsym XF86AudioMicMute exec --no-startup-id /home/nik/.config/i3/audio-helper toggle-mic && $refresh_i3status
 
@@ -237,8 +237,8 @@ bar {
 
 exec --no-startup-id blueberry-tray
 # exec --no-startup-id "sleep 5 && /home/nik/.config/i3/pulse-mic-config-keeper"
-exec --no-startup-id "sleep 0.5 && /home/nik/.config/i3/audio-helper set-volume-defaults && /home/nik/.config/i3/audio-helper set-up-mic-n-keep-volume"
-exec_always --no-startup-id "sleep 5 && /home/nik/.config/i3/i3status-keyboard-layout"
+exec --no-startup-id "sleep 0.5; /home/nik/.config/i3/audio-helper set-volume-defaults; /home/nik/.config/i3/audio-helper set-up-mic-n-keep-volume"
+exec_always --no-startup-id "sleep 5; /home/nik/.config/i3/i3status-keyboard-layout"
 
 exec --no-startup-id light -S 83
 exec_always --no-startup-id feh --randomize --bg-fill ~/pics/wallpapers/*

@@ -4,10 +4,16 @@ inoremap jk <esc>
 tnoremap jk <C-\><C-n>
 inoremap 0p <c-r>"
 inoremap 0P <c-r>0
+nnoremap gd :lua vim.lsp.buf.definition()<CR>
 
-inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<CR>"
+" inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<CR>"
+" inoremap <Tab> <C-n>
+" inoremap <silent><expr> <esc> pumvisible() ? "\<C-n>" : "\<C-\>\<C-O>:call ncm2#manual_trigger()\<CR>"
+
 inoremap <Tab> <C-n>
-inoremap <silent><expr> <esc> pumvisible() ? "\<C-n>" : "\<C-\>\<C-O>:call ncm2#manual_trigger()\<CR>"
+inoremap <silent><expr> <CR> pumvisible() ? compe#confirm('<CR>') : "\<CR>"
+inoremap <expr> <esc> pumvisible() ? compe#close('<C-e>') : compe#complete()
+
 
 onoremap il :<c-u>normal! _vg_<cr>
 vnoremap P "0p
@@ -214,7 +220,7 @@ let g:which_key_map.l.m.a = 'All'
 let g:which_key_map.l.m.Q = { 'name' : '☰ Quickfix' }
 let g:which_key_map.l.m.Q.Q = 'Quick'
 let g:which_key_map.l.m.Q.A = 'All'
-" ALSO nnoremap gd IS DEFINED LOCALLY FOR BUFFERS
+
 nnoremap <leader>ld :call LanguageClient#textDocument_definition()<CR>
 nnoremap <leader>lh :call LanguageClient#textDocument_hover()<CR>
 nnoremap <leader>lma :Neomake<cr>

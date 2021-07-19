@@ -371,7 +371,7 @@ filextype */
 
 " Web Dev
 fileviewer *.py,*.rs,*.js,*.html,*.css,*.less env -uCOLORTERM bat --color=always --terminal-width=70 --wrap never %c
-filetype *.py,*.rs,*.js,*.html,*.css,*.less nvim %c
+filetype *.py,*.rs,*.js,*.html,*.css,*.less,*.txt nvim %c
 
 " Open all other files with default system programs (you can also remove all
 " :file[x]type commands above to ensure they don't interfere with system-wide

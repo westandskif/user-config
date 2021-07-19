@@ -1,18 +1,3 @@
-let g:ncm2#auto_popup = 0
-let g:ncm2#total_popup_limit = 15
-autocmd BufEnter * call ncm2#enable_for_buffer()
-set completeopt=noinsert,menuone,noselect
-
-let g:LanguageClient_diagnosticsEnable = 0
-let g:LanguageClient_serverCommands = {
-    \ 'rust': ['rust-analyzer'],
-    \ 'python': ['pyls'],
-    \ }
-let g:LanguageClient_loggingFile =  expand('/tmp/nvim-LanguageClient.log')
-let g:LanguageClient_serverStderr = expand('/tmp/nvim-LanguageServer.log')
-let g:LanguageClient_showCompletionDocs = 0
-let g:LanguageClient_hoverPreview = 'Always'
-
 let g:neoformat_run_all_formatters = 1
 let g:neoformat_enabled_python = ['isort', 'black']
 let g:neoformat_hcl_hclfmt = {'exe': 'hclfmt'}
@@ -77,18 +62,10 @@ function! NeomakeQf(lint_config)
 endfunction
 
 function! RefreshSitePackageTags()
-    let text =<< trim END
-    import sys
-    bad_endings = (".zip", "dynload")
-    for path in sys.path:
-        if path and any(path.endswith(ending) for ending in bad_endings):
-            continue
-        print(path)
-    END
-    let sitepackages = systemlist('python -', l:text)
+    let sitepackages = systemlist('echo $PATHS_TO_SITEPACKAGES')
     for path in sitepackages
         if stridx(&tags, path) == -1
-            let &tags = &tags.path."/tags,"
+            let &tags = &tags . "," . path."/tags"
         endif
     endfor
     return sitepackages

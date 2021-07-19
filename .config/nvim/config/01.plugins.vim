@@ -22,12 +22,11 @@ Plug 'stefandtw/quickfix-reflector.vim'
 
 Plug 'neomake/neomake'
 Plug 'sbdchd/neoformat'
-Plug 'ncm2/ncm2'
-Plug 'roxma/nvim-yarp'
-Plug 'autozimu/LanguageClient-neovim', {
-    \ 'branch': 'next',
-    \ 'do': 'bash install.sh',
-    \ }
+
+" COMPLETION
+Plug 'neovim/nvim-lspconfig'
+Plug 'hrsh7th/nvim-compe'
+
 Plug 'hashivim/vim-terraform', {'for': 'terraform'}
 
 Plug 'wellle/context.vim'
