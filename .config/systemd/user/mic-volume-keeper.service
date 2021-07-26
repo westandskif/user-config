@@ -1,0 +1,11 @@
+[Unit]
+Description=Own Mic Volume Keeper
+After=pipewire-pulse.socket
+
+[Service]
+ExecStart=/home/nik/.config/own/audio-controls --keep-mic-volume 'alsa_input.pci-0000_07_00.6.HiFi__hw_acp__source' 140000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

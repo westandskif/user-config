@@ -1,0 +1,220 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+while (("$#")); do
+    case "$1" in
+    --executable-name)
+        EXECUTABLE_NAME="$2"
+        shift 2
+        ;;
+    --python-version)
+        PYTHON_VERSION="$2"
+        shift 2
+        ;;
+    --from-venv-path)
+        EXISTING_VENV_PATH=$(realpath "$2")
+        shift 2
+        ;;
+    --from-docker-image)
+        EXISTING_DOCKER_IMAGE="$2"
+        shift 2
+        ;;
+
+    --force)
+        FORCE_REINSTALL=1
+        shift 1
+        ;;
+    -* | --*=)
+        echo "Error: Unsupported flag $1" >&2
+        exit 1
+        ;;
+    *) # preserve positional arguments
+        PARAMS="$PARAMS $1"
+        shift
+        ;;
+    esac
+done
+
+XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+NVIM_ROOT="$XDG_DATA_HOME/nvim"
+NVIM_CONFIG="$XDG_CONFIG_HOME/nvim"
+
+DIR_AUTOGEN_SCRIPTS=$(realpath "$NVIM_CONFIG/autogen_scripts")
+DIR_COPIED_DOCKER_SITEPACKAGES=$(realpath "$NVIM_ROOT/copied_docker_sitepackages")
+
+install_system_libraries() {
+    sudo dnf install aspell ripgrep ctags fd-find curl fzf bat
+    install_pyenv
+}
+install_pyenv() {
+    # install pyenv manually, it may need the following:
+    # sudo dnf install zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel xz xz-devel libffi-devel
+    PYENV="$PYENV_ROOT/bin/pyenv"
+}
+
+_nvim_installed=0
+install_nvim() {
+    if [[ -d "$NVIM_ROOT/nvim-linux64" ]] && [[ ${FORCE_REINSTALL:-0} -eq 0 ]]; then
+        echo "nvim already installed $NVIM_ROOT"
+        return
+    fi
+    mkdir -p "$NVIM_ROOT"
+    local tag_name=$(curl -s https://api.github.com/repos/neovim/neovim/releases/latest | jq -r ".tag_name")
+    echo "Installing nvim"
+    _nvim_installed=1
+    curl \
+        -fLo \
+        "$NVIM_ROOT/nvim-linux64.tar.gz" \
+        https://github.com/neovim/neovim/releases/download/$tag_name/nvim-linux64.tar.gz
+    tar -xzf "$NVIM_ROOT/nvim-linux64.tar.gz" -C "$NVIM_ROOT"
+    rm "$NVIM_ROOT/nvim-linux64.tar.gz"
+
+    curl -fLo \
+        "$NVIM_ROOT/site/autoload/plug.vim" \
+        --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+}
+
+import_from_docker_image() {
+    echo "getting python version from docker image: $EXISTING_DOCKER_IMAGE"
+    local get_python_version_script='python -c "import sys; print(sys.version.split()[0])"'
+    PYTHON_VERSION=$(docker run --rm \
+        --name=tmp_for_pyenv \
+        --entrypoint=bash "${EXISTING_DOCKER_IMAGE}" \
+        -c "${get_python_version_script}")
+
+    echo "copying sitepackages from docker image: $EXISTING_DOCKER_IMAGE"
+    local get_python_sitepackages_path='python -c "import sys; [print(p) for p in sys.path if \"site-packages\" in p or \"src\" in p]"'
+    local docker_tmp_container=tmp_for_nvim
+    local docker_tmp_volume=tmp_for_sitepackager_copying
+
+    # find sitepackages path in the docker image
+    docker rm -f $docker_tmp_container >/dev/null 2>&1 || true
+    local sitepackages_paths=$(docker run \
+        --name=${docker_tmp_container} \
+        --entrypoint=bash "${EXISTING_DOCKER_IMAGE}" \
+        -c "${get_python_sitepackages_path}")
+
+    local copied_sitepackages_dir="$DIR_COPIED_DOCKER_SITEPACKAGES/$EXECUTABLE_NAME"
+    mkdir -p "$copied_sitepackages_dir"
+
+    for _path in $sitepackages_paths; do
+        echo $_path
+        docker cp "${docker_tmp_container}:${_path}/." "$copied_sitepackages_dir"
+    done
+    docker rm -f $docker_tmp_container || true
+
+    PYTHON_PATH=$copied_sitepackages_dir
+}
+
+import_from_venv() {
+    local venv_python="$EXISTING_VENV_PATH/bin/python"
+    PYTHON_VERSION=$($venv_python -c "import sys; print(sys.version.split()[0])")
+
+    PYTHON_PATH=$(find $EXISTING_VENV_PATH \
+        -type d \
+        -wholename "$EXISTING_VENV_PATH/*/python*/site-packages" |
+        paste -sd ':' -)
+}
+
+install_python_helpers() {
+
+    CC=clang "$PYENV" install -s $PYTHON_VERSION
+    "$PYENV" rehash
+    PYTHON_PYENV_DIR=$($PYENV prefix $PYTHON_VERSION)
+    PYENV_ENVS_DIR=$(dirname $PYTHON_PYENV_DIR)
+    VENV_DIR="$PYENV_ENVS_DIR/nvim-$PYTHON_VERSION"
+
+    if [[ ${FORCE_REINSTALL:-0} -eq 1 ]]; then
+        echo "dropping nvim python - $VENV_DIR"
+        rm -rf $VENV_DIR
+    fi
+
+    if [[ ! -d "$VENV_DIR" ]]; then
+        $PYTHON_PYENV_DIR/bin/pip install virtualenv
+        $PYTHON_PYENV_DIR/bin/virtualenv \
+            -p $PYTHON_PYENV_DIR/bin/python \
+            $VENV_DIR
+    fi
+
+    $VENV_DIR/bin/python -m pip install -U --no-cache-dir \
+        python-lsp-server \
+        isort \
+        black \
+        flake8 \
+        pylint \
+        autoflake
+    VENV_BINS_TO_EXPOSE=$VENV_DIR/bins-to-expose
+    mkdir -p $VENV_BINS_TO_EXPOSE
+    strings=(
+        "autoflake"
+        "black"
+        "flake8"
+        "isort"
+        "pyflakes"
+        "pylint"
+        "pylsp"
+    )
+    for i in "${strings[@]}"; do
+        _script="#!/bin/bash
+set -o nounset
+set -o errexit
+exec $VENV_DIR/bin/$i \"\$@\""
+        printf "$_script" >$VENV_BINS_TO_EXPOSE/$i
+        chmod 0777 $VENV_BINS_TO_EXPOSE/$i
+    done
+
+    local python_path=$(find $VENV_DIR \
+        -type d \
+        -wholename "$VENV_DIR/*/python*/site-packages" |
+        paste -sd ':' -)
+    PYTHON_PATH="$python_path:${PYTHON_PATH:-''}"
+}
+make_nvim_executable() {
+    echo "Create executable nvim with python binary set"
+    mkdir -p "$DIR_AUTOGEN_SCRIPTS"
+    local output_executable_path="$DIR_AUTOGEN_SCRIPTS/$EXECUTABLE_NAME"
+
+    local python_path='${PYTHONPATH:-'"''"'}'
+    python_path="$python_path:${PYTHON_PATH:-''}"
+
+    _script="#!/bin/bash
+set -o nounset
+set -o errexit
+
+export PATH=\"\$PATH:${VENV_BINS_TO_EXPOSE}\"
+export PYTHONPATH=\"$python_path\" 
+
+export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
+    && export XDG_DATA_HOME=$XDG_DATA_HOME \\
+    && exec $NVIM_ROOT/nvim-linux64/bin/nvim \"\$@\"\n"
+
+    printf "$_script" >$output_executable_path
+    chmod 0777 $output_executable_path
+
+    if [[ $_nvim_installed -eq 1 ]]; then
+        echo "Installing nvim plugins"
+        $output_executable_path --headless +PlugInstall +PlugUpgrade +qa
+    fi
+
+    sudo ln -sf "$output_executable_path" "/usr/local/bin/$EXECUTABLE_NAME"
+}
+
+install_system_libraries
+install_nvim
+
+# populated $PYTHON_VERSION and $PYTHON_PATH
+if [ ! -z ${EXISTING_DOCKER_IMAGE+x} ]; then
+    import_from_docker_image
+else
+    if [ ! -z ${EXISTING_VENV_PATH+x} ]; then
+        import_from_venv
+    fi
+fi
+
+install_python_helpers
+make_nvim_executable

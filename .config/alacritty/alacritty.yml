@@ -1,7 +1,7 @@
 font:
-  size: 9
+  size: 15
   normal:
-    family: Meslo LG S DZ
+    family: Meslo LG S
     style: Regular
 
 # background_opacity: 1

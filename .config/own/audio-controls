@@ -1,0 +1,74 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+MIC_SOURCE=alsa_input.pci-0000_07_00.6.HiFi__hw_acp__source
+MIC_VOLUME=150000
+
+MODE_KEEP_MIC_VOLUME=1
+CURRENT_MODE=0
+
+pactl set-default-source "$MIC_SOURCE"
+
+while (( "$#" )); do
+    case "$1" in
+        --keep-mic-volume)
+            CURRENT_MODE=$MODE_KEEP_MIC_VOLUME
+            MIC_SOURCE="$2"
+            MIC_VOLUME="$3"
+            shift 3
+            ;;
+        -*|--*=)
+            echo "Error: Unsupported flag $1" >&2
+            exit 1
+            ;;
+        *) # preserve positional arguments
+            PARAMS="$PARAMS $1"
+            shift
+            ;;
+    esac
+done
+
+msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $1"
+}
+get_source_volume_by_name() {
+    pactl list sources \
+        | grep "Name: $1" -A 15 \
+        | grep "  Volume:" \
+        | grep -oP "(?<=: )\d+"
+}
+ensure_source_volume_by_name() {
+    local current_volume=$(get_source_volume_by_name "$1")
+    if [[ $current_volume != $2 ]]; then
+        msg "resetting $1 volume to $2"
+        pactl set-source-volume "$1" "$2"
+    fi
+}
+
+get-source-id()
+{
+    pactl list sources | grep "$1" -B 2 | head -n 1 | grep -oP "#(\d+)"
+}
+keep-mic-volume()
+{
+    local source_id=$(get-source-id "$MIC_SOURCE")
+
+    exec 3< <(stdbuf -o0 pactl subscribe)
+    
+    while : ; do
+        read -r -t 600 -u 3 line \
+            && echo $line | grep -P "$source_id" > /dev/null \
+            && _ex=0 || _ex=$?
+        if (( $_ex == 0 )); then
+            msg "$line"
+            ensure_source_volume_by_name $MIC_SOURCE $MIC_VOLUME
+        fi
+    done
+}
+
+case $CURRENT_MODE in
+    $MODE_KEEP_MIC_VOLUME)
+        keep-mic-volume "$MIC_SOURCE" "$MIC_VOLUME"
+esac
