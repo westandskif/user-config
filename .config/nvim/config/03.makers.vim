@@ -60,21 +60,3 @@ function! NeomakeQf(lint_config)
     endfor
     call neomake#Make({'enabled_makers': values(maker_name_to_maker)})
 endfunction
-
-function! RefreshSitePackageTags()
-    let sitepackages = systemlist('echo $PATHS_TO_SITEPACKAGES')
-    for path in sitepackages
-        if stridx(&tags, path) == -1
-            let &tags = &tags . "," . path."/tags"
-        endif
-    endfor
-    return sitepackages
-endfunction
-autocmd FileType python :call RefreshSitePackageTags()
-
-function! GenerateSitePackageTags()
-    let sitepackages = RefreshSitePackageTags()
-    for path in sitepackages
-        call system("bash -s", "pushd ".path." && rm -f tags && ctags -R --languages=python --exclude=site-packages --exclude=test && sed -i '/\/\^ /d' tags && popd")
-    endfor
-endfunction

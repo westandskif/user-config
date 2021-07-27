@@ -108,14 +108,14 @@ import_from_docker_image() {
     done
     docker rm -f $docker_tmp_container || true
 
-    PYTHON_PATH=$copied_sitepackages_dir
+    TO_PYTHON_PATH=$copied_sitepackages_dir
 }
 
 import_from_venv() {
     local venv_python="$EXISTING_VENV_PATH/bin/python"
     PYTHON_VERSION=$($venv_python -c "import sys; print(sys.version.split()[0])")
 
-    PYTHON_PATH=$(find $EXISTING_VENV_PATH \
+    TO_PYTHON_PATH=$(find $EXISTING_VENV_PATH \
         -type d \
         -wholename "$EXISTING_VENV_PATH/*/python*/site-packages" |
         paste -sd ':' -)
@@ -168,26 +168,31 @@ exec $VENV_DIR/bin/$i \"\$@\""
         chmod 0777 $VENV_BINS_TO_EXPOSE/$i
     done
 
-    local python_path=$(find $VENV_DIR \
+    PYTHON_HELPERS_PYTHON_PATH=$(find $VENV_DIR \
         -type d \
         -wholename "$VENV_DIR/*/python*/site-packages" |
         paste -sd ':' -)
-    PYTHON_PATH="$python_path:${PYTHON_PATH:-''}"
+
 }
 make_nvim_executable() {
     echo "Create executable nvim with python binary set"
     mkdir -p "$DIR_AUTOGEN_SCRIPTS"
     local output_executable_path="$DIR_AUTOGEN_SCRIPTS/$EXECUTABLE_NAME"
 
-    local python_path='${PYTHONPATH:-'"''"'}'
-    python_path="$python_path:${PYTHON_PATH:-''}"
+    local export_path='export PATH="$PATH:'"$VENV_BINS_TO_EXPOSE"'"'
+    local export_pythonpath='export PYTHONPATH="${PYTHONPATH:-""}:'"${PYTHON_HELPERS_PYTHON_PATH:-""}:${TO_PYTHON_PATH:-""}"'"'
+    local export_tag_dirs=''
+    if [ ! -z ${TO_PYTHON_PATH+x} ]; then
+        local export_tag_dirs='export TAG_DIRS="${TAG_DIRS:-""}\n'"$(echo ${TO_PYTHON_PATH} | tr ':' '\n')"'"'
+    fi
 
     _script="#!/bin/bash
 set -o nounset
 set -o errexit
 
-export PATH=\"\$PATH:${VENV_BINS_TO_EXPOSE}\"
-export PYTHONPATH=\"$python_path\" 
+$export_path
+$export_pythonpath
+$export_tag_dirs
 
 export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
     && export XDG_DATA_HOME=$XDG_DATA_HOME \\
