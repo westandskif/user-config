@@ -26,3 +26,4 @@ dconf write /org/gnome/desktop/wm/keybindings/switch-to-workspace-10 "['<Super>F
 dconf write /org/gnome/desktop/wm/keybindings/switch-to-workspace-11 "['<Super>F11']"
 dconf write /org/gnome/desktop/wm/keybindings/switch-to-workspace-12 "['<Super>F12']"
 
+gsettings set org.gnome.desktop.peripherals.touchpad tap-and-drag false
