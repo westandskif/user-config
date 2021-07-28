@@ -49,11 +49,18 @@ DIR_COPIED_DOCKER_SITEPACKAGES=$(realpath "$NVIM_ROOT/copied_docker_sitepackages
 install_system_libraries() {
     sudo dnf install aspell ripgrep ctags fd-find curl fzf bat
     install_pyenv
+    install_ctags
 }
 install_pyenv() {
-    # install pyenv manually, it may need the following:
-    # sudo dnf install zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel xz xz-devel libffi-devel
+    # pyenv is not officially supported in Fedora 34
+    #   sudo dnf install zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel xz xz-devel libffi-devel
+    #   install manually
     PYENV="$PYENV_ROOT/bin/pyenv"
+}
+install_ctags() {
+    # universal-ctags are not officially supported in Fedora 34
+    #   sudo dnf copr enable jgoguen/universal-ctags
+    sudo dnf install universal-ctags
 }
 
 _nvim_installed=0
@@ -114,11 +121,8 @@ import_from_docker_image() {
 import_from_venv() {
     local venv_python="$EXISTING_VENV_PATH/bin/python"
     PYTHON_VERSION=$($venv_python -c "import sys; print(sys.version.split()[0])")
-
-    TO_PYTHON_PATH=$(find $EXISTING_VENV_PATH \
-        -type d \
-        -wholename "$EXISTING_VENV_PATH/*/python*/site-packages" |
-        paste -sd ':' -)
+    TO_PYTHON_PATH=$($venv_python -c "import sys; print(':'.join(p for p in sys.path if \"site-packages\" in p or \"src\" in p))")
+    echo "PYTHONPATH from venv: $TO_PYTHON_PATH"
 }
 
 install_python_helpers() {

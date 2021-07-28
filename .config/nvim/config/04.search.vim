@@ -27,7 +27,7 @@ function! GenerateSitePackageTags()
     let sitepackages = RefreshSitePackageTags()
     for path in sitepackages
         if strlen(path)
-            call system("bash -s", "pushd ".path." && rm -f tags && ctags -R --languages=python --exclude=site-packages --exclude=test && sed -i '/\\/\\^ /d; /\\/\\^from/d; /\\/\\^import/d' tags && popd")
+            call system("bash -s", "pushd ".path." && rm -f tags && ctags -R --exclude=tests && sed -i '/\\/\\^ /d' tags && popd")
         endif
     endfor
 endfunction
