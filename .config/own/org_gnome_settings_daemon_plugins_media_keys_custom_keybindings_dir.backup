@@ -1,0 +1,14 @@
+[custom0]
+binding='<Super>t'
+command='alacritty'
+name='open alacritty'
+
+[custom1]
+binding='<Shift><Super>s'
+command='flameshot gui'
+name='flameshot'
+
+[custom2]
+binding='<Alt><Super>F3'
+command='brave-browser --enable-features=VaapiVideoDecoder --enable-gpu-rasterization'
+name='open brave'

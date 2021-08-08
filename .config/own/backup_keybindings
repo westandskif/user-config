@@ -1,0 +1,12 @@
+#!/bin/bash
+
+dconf dump /org/gnome/desktop/wm/keybindings/ >| org_gnome_desktop_wm_keybindings_dir.backup
+dconf dump /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/ >| org_gnome_settings_daemon_plugins_media_keys_custom_keybindings_dir.backup
+dconf read /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings >| org_gnome_settings_daemon_plugins_media_keys_custom_keybindings.backup
+
+
+
+
+# cat org_gnome_desktop_wm_keybindings_dir.backup | dconf load /org/gnome/desktop/wm/keybindings/
+# cat org_gnome_settings_daemon_plugins_media_keys_custom_keybindings_dir.backup | dconf load /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/
+# dconf write /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings "$(cat org_gnome_settings_daemon_plugins_media_keys_custom_keybindings.backup)"
