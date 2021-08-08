@@ -12,3 +12,23 @@ name='flameshot'
 binding='<Alt><Super>F3'
 command='brave-browser --enable-features=VaapiVideoDecoder --enable-gpu-rasterization'
 name='open brave'
+
+[custom3]
+binding='<Alt><Super>F4'
+command="gtk-launch 'com.slack.Slack'"
+name='open slack'
+
+[custom4]
+binding='<Alt><Super>F5'
+command='evolution'
+name='open evolution'
+
+[custom5]
+binding='<Alt><Super>F6'
+command="gtk-launch 'com.discordapp.Discord'; gtk-launch 'com.skype.Client'"
+name='open discord & skype'
+
+[custom6]
+binding='<Alt><Super>F7'
+command='gtk-launch org.telegram.desktop.desktop'
+name='open telegram'
