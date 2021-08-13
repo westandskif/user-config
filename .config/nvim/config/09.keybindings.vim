@@ -12,8 +12,7 @@ nnoremap gd :lua vim.lsp.buf.definition()<CR>
 
 inoremap <Tab> <C-n>
 inoremap <silent><expr> <CR> pumvisible() ? compe#confirm('<CR>') : "\<CR>"
-inoremap <expr> <esc> pumvisible() ? compe#close('<C-e>') : compe#complete()
-
+inoremap <silent><expr> <esc> pumvisible() ? compe#close('<C-e>') : compe#complete()
 
 onoremap il :<c-u>normal! _vg_<cr>
 vnoremap P "0p

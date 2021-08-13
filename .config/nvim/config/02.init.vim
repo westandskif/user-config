@@ -52,9 +52,7 @@ set statusline=%F         " Path to the file
 set statusline+=%P        " Percentage
 set statusline+=\ of\     " Separator
 set statusline+=%L        " Total lines
-set completeopt=noinsert,menuone,noselect
 syntax on
-set completeopt=menu,longest
 set pumheight=20
 set redrawtime=2000
 set clipboard=unnamedplus

@@ -47,14 +47,19 @@ nvim_lsp.pylsp.setup{
         }
     }
 }
+
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+capabilities.textDocument.completion.completionItem.snippetSupport = true
 nvim_lsp.rust_analyzer.setup{
     on_attach = on_attach,
+    capabilities = capabilities,
 }
 
 
 EOF
 
-set completeopt=noinsert,menuone,noselect
+" set completeopt=noinsert,menuone,noselect
+set completeopt=menuone,noselect
 
 let g:compe = {}
 let g:compe.enabled = v:true
