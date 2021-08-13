@@ -41,8 +41,8 @@ nvim_lsp.pylsp.setup{
                 pycodestyle = { enabled = false },
                 pylint = { enabled = false },
                 yapf = { enabled = false },
-                pydocstyle = { enabled = false },
                 pyflakes = { enabled = false },
+                mccabe = { enabled = false },
             }
         }
     }
