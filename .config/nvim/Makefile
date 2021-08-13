@@ -4,6 +4,7 @@ nvim:
 	./make_nvim_executable \
 		--executable-name nvim-python-3.7.9 \
 		--python-version 3.7.9 #--force
+	sudo ln -sf /usr/local/bin/nvim-python-3.7.9 /usr/local/bin/nvim
 
 nvim-convtools:
 	./make_nvim_executable \
