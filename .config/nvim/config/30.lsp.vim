@@ -32,6 +32,7 @@ local on_attach = function(client, bufnr)
 
 end
 
+-- PYTHON
 -- available settings at https://github.com/python-lsp/python-lsp-server/blob/develop/pylsp/config/schema.json
 nvim_lsp.pylsp.setup{
     on_attach = on_attach,
@@ -48,6 +49,7 @@ nvim_lsp.pylsp.setup{
     }
 }
 
+-- RUST
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities.textDocument.completion.completionItem.snippetSupport = true
 nvim_lsp.rust_analyzer.setup{
@@ -55,6 +57,13 @@ nvim_lsp.rust_analyzer.setup{
     capabilities = capabilities,
 }
 
+
+-- TS
+nvim_lsp.tsserver.setup{
+    -- cmd = {"/home/nik/work/aprenita/.githooks/bin/typescript-language-server", "--stdio"},
+    cmd = {"typescript-language-server", "--stdio"},
+    on_attach = on_attach,
+}
 
 EOF
 
