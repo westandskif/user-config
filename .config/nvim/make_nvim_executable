@@ -26,11 +26,10 @@ while (("$#")); do
         NODE_FROM_VERSION="$2"
         shift 2
         ;;
-    --node-from-docker-image)
-        NODE_FROM_DOCKER_IMAGE_PATH="$2"
+    --node-from-docker-image-path)
+        NODE_FROM_DOCKER_IMAGE_N_PATH="$2"
         shift 2
         ;;
-
     --force)
         FORCE_REINSTALL=1
         shift 1
@@ -51,7 +50,6 @@ XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 
 NVIM_ROOT="$XDG_DATA_HOME/nvim"
 NVIM_CONFIG="$XDG_CONFIG_HOME/nvim"
-
 
 COMMON_HELPERS_DIR="$XDG_DATA_HOME/nvim-helpers/common"
 HELPERS_DIR="$XDG_DATA_HOME/nvim-helpers/$EXECUTABLE_NAME"
@@ -75,7 +73,10 @@ touch "$TAG_DIRS"
 PYTHON_VERSION="$HELPERS_DIR/PYTHON_VERSION"
 PYTHON_SITEPACKAGES="$HELPERS_DIR/PYTHON_SITEPACKAGES"
 touch "$PYTHON_SITEPACKAGES"
-
+# NODE
+NODE_VERSION="$HELPERS_DIR/NODE_VERSION"
+NODE_MODULES="$HELPERS_DIR/NODE_MODULES"
+touch "$NODE_MODULES"
 
 echo "INSTALLING SYSTEM LIBRARIES"
 sudo dnf install aspell ripgrep ctags fd-find curl fzf bat
@@ -86,12 +87,63 @@ sudo dnf install aspell ripgrep ctags fd-find curl fzf bat
 PYENV="$PYENV_ROOT/bin/pyenv"
 
 # nvm is not officially supported in Fedora 34
-# NVM="$NVM_DIR/bin/pyenv"
+source "$HOME/.nvm/nvm.sh"
+NVM="nvm"
 
 # universal-ctags are not officially supported in Fedora 34
 #   sudo dnf copr enable jgoguen/universal-ctags
 sudo dnf install universal-ctags
 
+if [ ! -z ${NODE_FROM_VERSION+x} ]; then
+    echo "$NODE_FROM_VERSION" >"$NODE_VERSION"
+fi
+if [ -e "$NODE_VERSION" ] && [ ! -z ${NODE_FROM_DOCKER_IMAGE_N_PATH+x} ]; then
+    echo "LOOKING FOR NODE MODULES"
+    docker_image=$(echo "$NODE_FROM_DOCKER_IMAGE_N_PATH" | awk 'BEGIN {FS=":"}; {print $1}')
+    from_path=$(echo "$NODE_FROM_DOCKER_IMAGE_N_PATH" | awk 'BEGIN {FS=":"}; {print $2}')
+    to_path="$HELPERS_DIR/node_from_docker/$(echo "$NODE_FROM_DOCKER_IMAGE_N_PATH" | sed 's%/%%g; s%:%%g')"
+    mkdir -p "$to_path"
+
+    docker_tmp_container=tmp_node_for_nvim
+    docker rm -f "$docker_tmp_container" &>/dev/null || true
+
+    docker run \
+        --name="$docker_tmp_container" \
+        --entrypoint=bash \
+        "${docker_image}" \
+        -c "true"
+    docker cp "$docker_tmp_container:$from_path/." "$to_path"
+    docker rm -f "$docker_tmp_container" || true
+    echo $to_path >>"$NODE_MODULES"
+    echo $to_path >>"$TAG_DIRS"
+    echo "COPIED NODE MODULES FROM DOCKER\n$(cat $NODE_MODULES)"
+fi
+
+if [ -e "$NODE_VERSION" ]; then
+    _node_version=$(cat $NODE_VERSION)
+    echo "INSTALLING NODE $_node_version"
+    nvm install "$_node_version"
+    nvm exec "$_node_version" npm install -g \
+        typescript-language-server \
+        typescript
+    node_bins=$(dirname $(nvm which "$_node_version"))
+    node_path=$(cat "$NODE_MODULES" | paste -sd ':')
+    strings=(
+        "typescript-language-server"
+        "tsc"
+        "tsserver"
+    )
+    for i in "${strings[@]}"; do
+        _script="#!/bin/bash
+set -o nounset
+set -o errexit
+export NODE_PATH=\"$node_path\"
+export PATH=\"$EXECUTABLES_DIR_TO_EXPOSE:\$PATH\"
+exec $node_bins/$i \"\$@\""
+        printf "$_script" >"$EXECUTABLES_DIR_TO_EXPOSE/$i"
+        chmod 0777 "$EXECUTABLES_DIR_TO_EXPOSE/$i"
+    done
+fi
 
 echo "LOOKING FOR PYTHON DEPENDENCIES"
 python_script_get_version='import sys; print(sys.version.split()[0])'
@@ -103,8 +155,8 @@ if [ ! -z ${PYTHON_FROM_VENV_PATH+x} ]; then
     echo "IDENTIFIED PYTHON VERSION $(cat $PYTHON_VERSION)"
     sitepackages_paths=$($PYTHON_FROM_VENV_PATH/bin/python -c "$python_script_get_sitepackages_paths")
     echo "REUSING EXISTING PYTHON SITEPACKAGES $(cat $PYTHON_SITEPACKAGES)"
-    echo "$sitepackages_paths" >> "$PYTHON_SITEPACKAGES"
-    echo "$sitepackages_paths" >> "$TAG_DIRS"
+    echo "$sitepackages_paths" >>"$PYTHON_SITEPACKAGES"
+    echo "$sitepackages_paths" >>"$TAG_DIRS"
 fi
 if [ ! -z ${PYTHON_FROM_DOCKER_IMAGE+x} ]; then
     docker run --rm \
@@ -130,10 +182,11 @@ if [ ! -z ${PYTHON_FROM_DOCKER_IMAGE+x} ]; then
     echo "COPIED PYTHON SITEPACKAGES FROM DOCKER\n$(cat $PYTHON_SITEPACKAGES)"
 fi
 if [ ! -z "${PYTHON_FROM_VERSION+x}" ] && [ ! -e "$PYTHON_VERSION" ]; then
-    echo "$PYTHON_FROM_VERSION" > "$PYTHON_VERSION"
+    echo "$PYTHON_FROM_VERSION" >"$PYTHON_VERSION"
 fi
 if [ -e "$PYTHON_VERSION" ]; then
     _python_version=$(cat $PYTHON_VERSION)
+    echo "INSTALLING PYTHON $_python_version"
     CC=clang "$PYENV" install -s $_python_version
     "$PYENV" rehash
     PYTHON_PYENV_DIR=$($PYENV prefix $_python_version)
@@ -187,7 +240,6 @@ exec $VENV_DIR/bin/$i \"\$@\""
     done
 fi
 
-
 echo "INSTALLING NVIM"
 if [[ ! -d "$NVIM_ROOT/nvim-linux64" ]] || [[ ${FORCE_REINSTALL:-0} -eq 1 ]]; then
     mkdir -p "$NVIM_ROOT"
@@ -205,10 +257,9 @@ if [[ ! -d "$NVIM_ROOT/nvim-linux64" ]] || [[ ${FORCE_REINSTALL:-0} -eq 1 ]]; th
         https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 fi
 
-
 echo "CREATING PROJECT NVIM EXECUTABLE"
 
-export_path='export PATH="$PATH:'"$EXECUTABLES_DIR_TO_EXPOSE"'"'
+export_path='export PATH="'"$EXECUTABLES_DIR_TO_EXPOSE"':$PATH"'
 export_tag_dirs='export TAG_DIRS="'"$(cat "$TAG_DIRS")"'"'
 
 _script="#!/bin/bash
@@ -222,10 +273,10 @@ export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
     && export XDG_DATA_HOME=$XDG_DATA_HOME \\
     && exec $NVIM_ROOT/nvim-linux64/bin/nvim \"\$@\"\n"
 
-    printf "$_script" > "$EXECUTABLE"
-    chmod 0777 "$EXECUTABLE"
+printf "$_script" >"$EXECUTABLE"
+chmod 0777 "$EXECUTABLE"
 
-    echo "Installing nvim plugins"
-    "$EXECUTABLE" --headless +PlugInstall +PlugUpgrade +qa
+echo "Installing nvim plugins"
+"$EXECUTABLE" --headless +PlugInstall +PlugUpgrade +qa
 
-    sudo ln -sf "$EXECUTABLE" "/usr/local/bin/$EXECUTABLE_NAME"
+sudo ln -sf "$EXECUTABLE" "/usr/local/bin/$EXECUTABLE_NAME"
