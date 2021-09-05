@@ -117,7 +117,7 @@ if [ -e "$NODE_VERSION" ] && [ ! -z ${NODE_FROM_DOCKER_IMAGE_N_PATH+x} ]; then
         -c "true"
     docker cp "$docker_tmp_container:$from_path/." "$to_path"
     docker rm -f "$docker_tmp_container" || true
-    echo "$to_path" >> "$TAG_DIRS"
+    echo "$to_path" >>"$TAG_DIRS"
     sudo ln -sf "$to_path" "$NODE_MODULES_OUTPUT_DIR"
     echo "COPIED NODE MODULES FROM DOCKER $to_path"
 fi
@@ -139,7 +139,6 @@ if [ -e "$NODE_VERSION" ]; then
         _script="#!/bin/bash
 set -o nounset
 set -o errexit
-export PATH=\"$EXECUTABLES_DIR_TO_EXPOSE:\$PATH\"
 exec $node_bins/$i \"\$@\""
         printf "$_script" >"$EXECUTABLES_DIR_TO_EXPOSE/$i"
         chmod 0777 "$EXECUTABLES_DIR_TO_EXPOSE/$i"
@@ -222,19 +221,22 @@ if [ -e "$PYTHON_VERSION" ]; then
         "pylint"
         "pylsp"
     )
-    python_path=$(
+    export_python_path='export PYTHONPATH="'$(
         (
             $VENV_DIR/bin/python -c "$python_script_get_sitepackages_paths"
             cat "$PYTHON_SITEPACKAGES"
         ) | paste -sd ':'
-    )
+    )'"'
     for i in "${strings[@]}"; do
+        if [[ "$i" == pylint ]] || [[ "$i" == pylsp ]]; then
+            _export_python_path="$export_python_path"
+        else
+            _export_python_path=""
+        fi
         _script="#!/bin/bash
 set -o nounset
 set -o errexit
-if [[ "$i" == pylint ]] || [[ "$i" == pylsp ]]; then
-    export PYTHONPATH=\"$python_path\"
-fi
+$_export_python_path
 exec $VENV_DIR/bin/$i \"\$@\""
         printf "$_script" >"$EXECUTABLES_DIR_TO_EXPOSE/$i"
         chmod 0777 "$EXECUTABLES_DIR_TO_EXPOSE/$i"
