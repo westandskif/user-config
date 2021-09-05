@@ -30,6 +30,11 @@ while (("$#")); do
         NODE_FROM_DOCKER_IMAGE_N_PATH="$2"
         shift 2
         ;;
+    --node-modules-output-dir)
+        NODE_MODULES_OUTPUT_DIR="$2"
+        shift 2
+        ;;
+
     --force)
         FORCE_REINSTALL=1
         shift 1
@@ -75,8 +80,6 @@ PYTHON_SITEPACKAGES="$HELPERS_DIR/PYTHON_SITEPACKAGES"
 touch "$PYTHON_SITEPACKAGES"
 # NODE
 NODE_VERSION="$HELPERS_DIR/NODE_VERSION"
-NODE_MODULES="$HELPERS_DIR/NODE_MODULES"
-touch "$NODE_MODULES"
 
 echo "INSTALLING SYSTEM LIBRARIES"
 sudo dnf install aspell ripgrep ctags fd-find curl fzf bat
@@ -114,20 +117,19 @@ if [ -e "$NODE_VERSION" ] && [ ! -z ${NODE_FROM_DOCKER_IMAGE_N_PATH+x} ]; then
         -c "true"
     docker cp "$docker_tmp_container:$from_path/." "$to_path"
     docker rm -f "$docker_tmp_container" || true
-    echo $to_path >>"$NODE_MODULES"
-    echo $to_path >>"$TAG_DIRS"
-    echo "COPIED NODE MODULES FROM DOCKER\n$(cat $NODE_MODULES)"
+    echo "$to_path" >> "$TAG_DIRS"
+    sudo ln -sf "$to_path" "$NODE_MODULES_OUTPUT_DIR"
+    echo "COPIED NODE MODULES FROM DOCKER $to_path"
 fi
 
 if [ -e "$NODE_VERSION" ]; then
     _node_version=$(cat $NODE_VERSION)
     echo "INSTALLING NODE $_node_version"
-    nvm install "$_node_version"
+    nvm which "$_node_version" || nvm install "$_node_version"
     nvm exec "$_node_version" npm install -g \
         typescript-language-server \
         typescript
     node_bins=$(dirname $(nvm which "$_node_version"))
-    node_path=$(cat "$NODE_MODULES" | paste -sd ':')
     strings=(
         "typescript-language-server"
         "tsc"
@@ -137,7 +139,6 @@ if [ -e "$NODE_VERSION" ]; then
         _script="#!/bin/bash
 set -o nounset
 set -o errexit
-export NODE_PATH=\"$node_path\"
 export PATH=\"$EXECUTABLES_DIR_TO_EXPOSE:\$PATH\"
 exec $node_bins/$i \"\$@\""
         printf "$_script" >"$EXECUTABLES_DIR_TO_EXPOSE/$i"

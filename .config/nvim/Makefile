@@ -14,4 +14,7 @@ nvim-convtools:
 nvim-aprenita:
 	./make_nvim_executable \
 		--executable-name nvim-aprenita \
-		--python-from-docker-image aprenita-infrastructure_backend
+		--python-from-docker-image aprenita-infrastructure_backend \
+		--node-from-version v16.8.0 \
+		--node-from-docker-image-path aprenita-infrastructure_frontend:/node_modules \
+		--node-modules-output-dir ~/work/aprenita/ui/node_modules
