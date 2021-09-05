@@ -128,10 +128,12 @@ if [ -e "$NODE_VERSION" ]; then
     nvm which "$_node_version" || nvm install "$_node_version"
     nvm exec "$_node_version" npm install -g \
         typescript-language-server \
+        typescript-formatter \
         typescript
     node_bins=$(dirname $(nvm which "$_node_version"))
     strings=(
         "typescript-language-server"
+        "tsfmt"
         "tsc"
         "tsserver"
     )
