@@ -25,8 +25,8 @@ name='open evolution'
 
 [custom5]
 binding='<Alt><Super>F6'
-command="sh -c \"gtk-launch 'com.discordapp.Discord'; gtk-launch 'com.skype.Client'\""
-name='open discord & skype'
+command="gtk-launch 'com.discordapp.Discord'"
+name='open discord'
 
 [custom6]
 binding='<Alt><Super>F7'

@@ -1,4 +1,5 @@
 [/]
+close=['<Super>q']
 move-to-workspace-1=['<Shift><Super>F1']
 move-to-workspace-10=['<Shift><Super>F10']
 move-to-workspace-11=['<Shift><Super>F11']
