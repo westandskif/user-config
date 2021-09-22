@@ -26,8 +26,12 @@ while (("$#")); do
         NODE_FROM_VERSION="$2"
         shift 2
         ;;
-    --node-from-docker-image-path)
-        NODE_FROM_DOCKER_IMAGE_N_PATH="$2"
+    --node-from-docker-image)
+        NODE_FROM_DOCKER_IMAGE="$2"
+        shift 2
+        ;;
+    --node-from-docker-path)
+        NODE_FROM_DOCKER_PATH="$2"
         shift 2
         ;;
     --node-modules-output-dir)
@@ -100,11 +104,9 @@ sudo dnf install universal-ctags
 if [ ! -z ${NODE_FROM_VERSION+x} ]; then
     echo "$NODE_FROM_VERSION" >"$NODE_VERSION"
 fi
-if [ -e "$NODE_VERSION" ] && [ ! -z ${NODE_FROM_DOCKER_IMAGE_N_PATH+x} ]; then
+if [ -e "$NODE_VERSION" ] && [ ! -z ${NODE_FROM_DOCKER_IMAGE+x} ]; then
     echo "LOOKING FOR NODE MODULES"
-    docker_image=$(echo "$NODE_FROM_DOCKER_IMAGE_N_PATH" | awk 'BEGIN {FS=":"}; {print $1}')
-    from_path=$(echo "$NODE_FROM_DOCKER_IMAGE_N_PATH" | awk 'BEGIN {FS=":"}; {print $2}')
-    to_path="$HELPERS_DIR/node_from_docker/$(echo "$NODE_FROM_DOCKER_IMAGE_N_PATH" | sed 's%/%%g; s%:%%g')"
+    to_path="$HELPERS_DIR/node_from_docker/$(echo "$NODE_FROM_DOCKER_IMAGE" | sed 's%/%%g; s%:%%g')"
     mkdir -p "$to_path"
 
     docker_tmp_container=tmp_node_for_nvim
@@ -113,9 +115,10 @@ if [ -e "$NODE_VERSION" ] && [ ! -z ${NODE_FROM_DOCKER_IMAGE_N_PATH+x} ]; then
     docker run \
         --name="$docker_tmp_container" \
         --entrypoint=bash \
-        "${docker_image}" \
+        "${NODE_FROM_DOCKER_IMAGE}" \
         -c "true"
-    docker cp "$docker_tmp_container:$from_path/." "$to_path"
+
+    docker cp "$docker_tmp_container:$NODE_FROM_DOCKER_PATH/." "$to_path"
     docker rm -f "$docker_tmp_container" || true
     echo "$to_path" >>"$TAG_DIRS"
     sudo ln -sf "$to_path" "$NODE_MODULES_OUTPUT_DIR"
@@ -129,13 +132,15 @@ if [ -e "$NODE_VERSION" ]; then
     nvm exec "$_node_version" npm install -g \
         typescript-language-server \
         typescript-formatter \
-        typescript
+        typescript \
+        prettier
     node_bins=$(dirname $(nvm which "$_node_version"))
     strings=(
         "typescript-language-server"
         "tsfmt"
         "tsc"
         "tsserver"
+        "prettier"
     )
     for i in "${strings[@]}"; do
         _script="#!/bin/bash

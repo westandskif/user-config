@@ -16,5 +16,6 @@ nvim-aprenita:
 		--executable-name nvim-aprenita \
 		--python-from-docker-image aprenita-infrastructure_backend \
 		--node-from-version v16.8.0 \
-		--node-from-docker-image-path aprenita-infrastructure_frontend:/node_modules \
+		--node-from-docker-image aprenita-infrastructure_frontend:typescript \
+		--node-from-docker-path /node_modules \
 		--node-modules-output-dir ~/work/aprenita/ui/node_modules
