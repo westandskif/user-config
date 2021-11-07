@@ -1,0 +1,296 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+while (("$#")); do
+    case "$1" in
+    --executable-name)
+        EXECUTABLE_NAME="$2"
+        shift 2
+        ;;
+    --python-from-version)
+        PYTHON_FROM_VERSION="$2"
+        shift 2
+        ;;
+    --python-from-venv-path)
+        PYTHON_FROM_VENV_PATH=$(realpath "$2")
+        shift 2
+        ;;
+    --python-from-docker-image)
+        PYTHON_FROM_DOCKER_IMAGE="$2"
+        shift 2
+        ;;
+
+    --node-from-version)
+        NODE_FROM_VERSION="$2"
+        shift 2
+        ;;
+    --node-from-docker-image)
+        NODE_FROM_DOCKER_IMAGE="$2"
+        shift 2
+        ;;
+    --node-from-docker-path)
+        NODE_FROM_DOCKER_PATH="$2"
+        shift 2
+        ;;
+    --node-modules-output-dir)
+        NODE_MODULES_OUTPUT_DIR="$2"
+        shift 2
+        ;;
+
+    --force)
+        FORCE_REINSTALL=1
+        shift 1
+        ;;
+    -* | --*=)
+        echo "Error: Unsupported flag $1" >&2
+        exit 1
+        ;;
+    *) # preserve positional arguments
+        PARAMS="$PARAMS $1"
+        shift
+        ;;
+    esac
+done
+
+XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+NVIM_CONFIG="$XDG_CONFIG_HOME/nvim"
+
+COMMON_HELPERS_DIR="$XDG_DATA_HOME/nvim-helpers/common"
+HELPERS_DIR="$XDG_DATA_HOME/nvim-helpers/$EXECUTABLE_NAME"
+EXECUTABLES_DIR_TO_EXPOSE="$HELPERS_DIR/executables_to_expose"
+EXECUTABLE="$HELPERS_DIR/$EXECUTABLE_NAME"
+
+rm -rf "$HELPERS_DIR"
+mkdir -p "$HELPERS_DIR"
+mkdir -p "$EXECUTABLES_DIR_TO_EXPOSE"
+
+TAG_DIRS="$HELPERS_DIR/TAG_DIRS"
+touch "$TAG_DIRS"
+
+###############################
+########### OUTPUTS ###########
+###############################
+# TAGS
+TAG_DIRS="$HELPERS_DIR/TAG_DIRS"
+touch "$TAG_DIRS"
+# PYTHON
+PYTHON_VERSION="$HELPERS_DIR/PYTHON_VERSION"
+PYTHON_SITEPACKAGES="$HELPERS_DIR/PYTHON_SITEPACKAGES"
+touch "$PYTHON_SITEPACKAGES"
+# NODE
+NODE_VERSION="$HELPERS_DIR/NODE_VERSION"
+
+# assuming these are installed: curl
+
+echo "INSTALLING SYSTEM LIBRARIES"
+brew install aspell ripgrep fd fzf bat jq
+
+# installing universal ctags
+brew install --HEAD universal-ctags/universal-ctags/universal-ctags
+
+# installing pyenv
+#  git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+PYENV="${PYENV_ROOT:-$HOME/.pyenv}/bin/pyenv"
+
+# installing nvm
+export NVM_DIR="$HOME/.nvm"
+if [ ! -d "$HOME/.nvm" ]; then
+    git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+    cd "$NVM_DIR"
+    git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1)`
+    cd -
+fi
+cd "$NVM_DIR"
+\. "$NVM_DIR/nvm.sh"
+cd -
+NVM="nvm"
+
+
+
+if [ ! -z ${NODE_FROM_VERSION+x} ]; then
+    echo "$NODE_FROM_VERSION" >"$NODE_VERSION"
+fi
+if [ -e "$NODE_VERSION" ] && [ ! -z ${NODE_FROM_DOCKER_IMAGE+x} ]; then
+    echo "LOOKING FOR NODE MODULES"
+    to_path="$HELPERS_DIR/node_from_docker/$(echo "$NODE_FROM_DOCKER_IMAGE" | sed 's%/%%g; s%:%%g')"
+    mkdir -p "$to_path"
+
+    docker_tmp_container=tmp_node_for_nvim
+    docker rm -f "$docker_tmp_container" &>/dev/null || true
+
+    docker run \
+        --name="$docker_tmp_container" \
+        --entrypoint=bash \
+        "${NODE_FROM_DOCKER_IMAGE}" \
+        -c "true"
+
+    docker cp "$docker_tmp_container:$NODE_FROM_DOCKER_PATH/." "$to_path"
+    docker rm -f "$docker_tmp_container" || true
+    echo "$to_path" >>"$TAG_DIRS"
+    sudo ln -sf "$to_path" "$NODE_MODULES_OUTPUT_DIR"
+    echo "COPIED NODE MODULES FROM DOCKER $to_path"
+fi
+
+if [ -e "$NODE_VERSION" ]; then
+    _node_version=$(cat $NODE_VERSION)
+    echo "INSTALLING NODE $_node_version"
+    nvm which "$_node_version" || nvm install "$_node_version"
+    nvm exec "$_node_version" npm install -g \
+        typescript-language-server \
+        typescript-formatter \
+        typescript \
+        prettier
+    node_bins=$(dirname $(nvm which "$_node_version"))
+    strings=(
+        "typescript-language-server"
+        "tsfmt"
+        "tsc"
+        "tsserver"
+        "prettier"
+    )
+    for i in "${strings[@]}"; do
+        _script="#!/bin/bash
+set -o nounset
+set -o errexit
+exec $node_bins/$i \"\$@\""
+        printf "$_script" >"$EXECUTABLES_DIR_TO_EXPOSE/$i"
+        chmod 0777 "$EXECUTABLES_DIR_TO_EXPOSE/$i"
+    done
+fi
+
+echo "LOOKING FOR PYTHON DEPENDENCIES"
+python_script_get_version='import sys; print(sys.version.split()[0])'
+python_script_get_sitepackages_paths='import sys; list(map(print, (p for p in sys.path if '"'"'site-packages'"'"' in p or '"'"'src'"'"' in p)))'
+if [ ! -z ${PYTHON_FROM_VENV_PATH+x} ]; then
+    $PYTHON_FROM_VENV_PATH/bin/python \
+        -c "$python_script_get_version" \
+        >"$PYTHON_VERSION"
+    echo "IDENTIFIED PYTHON VERSION $(cat $PYTHON_VERSION)"
+    sitepackages_paths=$($PYTHON_FROM_VENV_PATH/bin/python -c "$python_script_get_sitepackages_paths")
+    echo "REUSING EXISTING PYTHON SITEPACKAGES $(cat $PYTHON_SITEPACKAGES)"
+    echo "$sitepackages_paths" >>"$PYTHON_SITEPACKAGES"
+    echo "$sitepackages_paths" >>"$TAG_DIRS"
+fi
+if [ ! -z ${PYTHON_FROM_DOCKER_IMAGE+x} ]; then
+    docker run --rm \
+        --entrypoint=bash "${PYTHON_FROM_DOCKER_IMAGE}" \
+        -c "python -c \"${python_script_get_version}\"" \
+        >"$PYTHON_VERSION"
+    echo "IDENTIFIED PYTHON VERSION $(cat $PYTHON_VERSION)"
+    docker_tmp_container=tmp_for_nvim
+    docker rm -f $docker_tmp_container &>/dev/null || true
+
+    sitepackages_paths=$(docker run \
+        --name=${docker_tmp_container} \
+        --entrypoint=bash "${PYTHON_FROM_DOCKER_IMAGE}" \
+        -c "python -c \"${python_script_get_sitepackages_paths}\"")
+    for _path in $sitepackages_paths; do
+        __path="$HELPERS_DIR/python_from_docker/$(echo "$_path" | sed s%/%%g)"
+        mkdir -p "$__path"
+        docker cp "${docker_tmp_container}:${_path}/." "$__path"
+        echo $__path >>"$PYTHON_SITEPACKAGES"
+        echo $__path >>"$TAG_DIRS"
+    done
+    docker rm -f $docker_tmp_container || true
+    echo "COPIED PYTHON SITEPACKAGES FROM DOCKER\n$(cat $PYTHON_SITEPACKAGES)"
+fi
+if [ ! -z "${PYTHON_FROM_VERSION+x}" ]; then
+    echo "$PYTHON_FROM_VERSION" >"$PYTHON_VERSION"
+fi
+if [ -e "$PYTHON_VERSION" ]; then
+    _python_version=$(cat $PYTHON_VERSION)
+    echo "INSTALLING PYTHON $_python_version"
+    CC=clang "$PYENV" install -s $_python_version
+    "$PYENV" rehash
+    PYTHON_PYENV_DIR=$($PYENV prefix $_python_version)
+    VENV_DIR="$COMMON_HELPERS_DIR/nvim-$_python_version"
+
+    if [[ ${FORCE_REINSTALL:-0} -eq 1 ]]; then
+        echo "DROPPING NVIM PYTHON - $VENV_DIR"
+        rm -rf $VENV_DIR
+    fi
+
+    if [[ ! -d "$VENV_DIR" ]]; then
+        $PYTHON_PYENV_DIR/bin/pip install virtualenv
+        $PYTHON_PYENV_DIR/bin/virtualenv \
+            -p $PYTHON_PYENV_DIR/bin/python \
+            $VENV_DIR
+        echo "CREATED PYTHON VIRTUALENV $VENV_DIR"
+    fi
+
+    $VENV_DIR/bin/python -m pip install -U --no-cache-dir \
+        python-lsp-server \
+        isort \
+        black \
+        flake8 \
+        pylint
+    strings=(
+        "black"
+        "flake8"
+        "isort"
+        "pyflakes"
+        "pylint"
+        "pylsp"
+    )
+    export_python_path='export PYTHONPATH="'$(
+        (
+            $VENV_DIR/bin/python -c "$python_script_get_sitepackages_paths"
+            cat "$PYTHON_SITEPACKAGES"
+        ) | paste -sd ':' -
+    )'"'
+    for i in "${strings[@]}"; do
+        if [[ "$i" == pylint ]] || [[ "$i" == pylsp ]]; then
+            _export_python_path="$export_python_path"
+        else
+            _export_python_path=""
+        fi
+        _script="#!/bin/bash
+set -o nounset
+set -o errexit
+$_export_python_path
+exec $VENV_DIR/bin/$i \"\$@\""
+        printf "$_script" >"$EXECUTABLES_DIR_TO_EXPOSE/$i"
+        chmod 0777 "$EXECUTABLES_DIR_TO_EXPOSE/$i"
+    done
+fi
+
+echo "INSTALLING NVIM"
+if [[ ! -x "$(command -v nvim)" ]] || [[ ${FORCE_REINSTALL:-0} -eq 1 ]]; then
+
+    brew install neovim
+    brew unlink neovim
+
+    curl -fLo \
+        "$XDG_DATA_HOME"/nvim/site/autoload/plug.vim \
+        --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+fi
+NVIM_ROOT="$(brew --prefix neovim)"
+
+echo "CREATING PROJECT NVIM EXECUTABLE"
+
+export_path='export PATH="'"$EXECUTABLES_DIR_TO_EXPOSE"':$PATH"'
+export_tag_dirs='export TAG_DIRS="'"$(cat "$TAG_DIRS")"'"'
+
+_script="#!/bin/bash
+set -o nounset
+set -o errexit
+
+$export_path
+$export_tag_dirs
+
+export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
+    && export XDG_DATA_HOME=$XDG_DATA_HOME \\
+    && exec $NVIM_ROOT/bin/nvim \"\$@\"\n"
+
+printf "$_script" >"$EXECUTABLE"
+chmod 0777 "$EXECUTABLE"
+
+echo "Installing nvim plugins"
+"$EXECUTABLE" --headless +PlugInstall +PlugUpgrade +qa
+
+sudo ln -sf "$EXECUTABLE" "/usr/local/bin/$EXECUTABLE_NAME"
