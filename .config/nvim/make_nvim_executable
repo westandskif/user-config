@@ -148,6 +148,7 @@ if [ -e "$NODE_VERSION" ]; then
     strings=(
         "typescript-language-server"
         "tsfmt"
+        "node"
         "tsc"
         "tsserver"
         "prettier"
