@@ -12,10 +12,12 @@ Plug 'junegunn/gv.vim'
 Plug 'bling/vim-airline'
 
 " THEMES
-Plug 'liuchengxu/space-vim-theme'
+" https://github.com/rockerBOO/awesome-neovim#tree-sitter-supported-colorscheme
+Plug 'sainnhe/sonokai'
+" Plug 'liuchengxu/space-vim-theme'
 
+" Plug 'sheerun/vim-polyglot'
 Plug 'liuchengxu/vim-which-key'
-Plug 'sheerun/vim-polyglot'
 
 Plug 'Asheq/close-buffers.vim'
 Plug 'stefandtw/quickfix-reflector.vim'
@@ -37,6 +39,6 @@ Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
 let g:Hexokinase_ftEnabled = ['less']
 let g:Hexokinase_highlighters = ['backgroundfull']
 
-" Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 
 call plug#end()

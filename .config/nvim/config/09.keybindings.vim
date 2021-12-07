@@ -190,7 +190,7 @@ let g:which_key_map.s.w = 'exact words'
 
 let g:sym_to_escape_for_rg = "\\$#%\"'`"
 let g:sym_to_escape_for_rg_regex = "#%\"'"
-let g:sym_to_escape_for_buffer_search = ".* \\/[]~"
+let g:sym_to_escape_for_buffer_search = ".* \\/[]~$"
 nnoremap <silent><leader>sb :Buffers<cr>
 nnoremap <silent><leader>sf :FZF<cr>
 nnoremap <silent><leader>sh :History<cr>

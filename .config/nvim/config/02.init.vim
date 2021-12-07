@@ -15,7 +15,8 @@ function! TweakHighlights()
 endfunction
 autocmd ColorScheme * call TweakHighlights()
 
-colorscheme space_vim_theme
+" colorscheme space_vim_theme
+colorscheme sonokai
 
 
 " Protect changes between writes. Default values of
