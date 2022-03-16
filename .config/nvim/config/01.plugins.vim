@@ -16,7 +16,9 @@ Plug 'bling/vim-airline'
 Plug 'sainnhe/sonokai'
 " Plug 'liuchengxu/space-vim-theme'
 
-" Plug 'sheerun/vim-polyglot'
+" Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+Plug 'sheerun/vim-polyglot'
+
 Plug 'liuchengxu/vim-which-key'
 
 Plug 'Asheq/close-buffers.vim'
@@ -39,6 +41,5 @@ Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
 let g:Hexokinase_ftEnabled = ['less']
 let g:Hexokinase_highlighters = ['backgroundfull']
 
-Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 
 call plug#end()

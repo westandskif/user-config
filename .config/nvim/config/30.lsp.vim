@@ -86,8 +86,8 @@ let g:compe.max_menu_width = 100
 let g:compe.documentation = v:true
 
 let g:compe.source = {}
-let g:compe.source.path = v:true
-let g:compe.source.buffer = v:true
+let g:compe.source.path = v:false
+let g:compe.source.buffer = v:false
 " let g:compe.source.calc = v:true
 let g:compe.source.nvim_lsp = v:true
 " let g:compe.source.nvim_lua = v:true
