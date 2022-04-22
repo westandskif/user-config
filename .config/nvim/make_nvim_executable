@@ -228,7 +228,8 @@ if [ -e "$PYTHON_VERSION" ]; then
         isort \
         black \
         flake8 \
-        pylint
+        pylint \
+        sqlparse
     strings=(
         "black"
         "flake8"
@@ -236,6 +237,7 @@ if [ -e "$PYTHON_VERSION" ]; then
         "pyflakes"
         "pylint"
         "pylsp"
+        "sqlformat"
     )
     export_python_path='export PYTHONPATH="'$(
         (

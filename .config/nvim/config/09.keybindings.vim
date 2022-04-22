@@ -1,6 +1,9 @@
 "========== GENERAL ==========
 nnoremap <esc> :let @/=""<cr>
 inoremap jk <esc>
+inoremap Jk <esc>
+inoremap jK <esc>
+inoremap JK <esc>
 tnoremap jk <C-\><C-n>
 inoremap 0p <c-r>"
 inoremap 0P <c-r>0
@@ -145,7 +148,7 @@ function! HistAddAndReturn(command_str)
 endfunction
 
 function! RunRgWithOpts(command_suffix)
-    let command = 'rg --column --line-number --no-heading --color=always --sort=path ' . a:command_suffix
+    let command = 'rg --column --line-number --no-heading --hidden --color=always --sort=path ' . a:command_suffix
     let fzf_args = [
                 \command,
                 \1,
