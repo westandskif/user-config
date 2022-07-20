@@ -41,6 +41,10 @@ nnoremap gh <c-w>h
 nnoremap gl <c-w>l
 nnoremap gj <c-w>j
 nnoremap gk <c-w>k
+nnoremap gH mW<c-w>h`Wzz
+nnoremap gL mW<c-w>l`Wzz
+nnoremap gJ mW<c-w>j`Wzz
+nnoremap gK mW<c-w>k`Wzz
 function! NetrwMapping()
     nnoremap <buffer> gh <c-w>h
     nnoremap <buffer> gl <c-w>l
@@ -193,13 +197,13 @@ let g:which_key_map.s.w = 'exact words'
 
 let g:sym_to_escape_for_rg = "\\$#%\"'`"
 let g:sym_to_escape_for_rg_regex = "#%\"'"
-let g:sym_to_escape_for_buffer_search = ".* \\/[]~$"
+let g:sym_to_escape_for_buffer_search = ".* \\/[]~$^"
 nnoremap <silent><leader>sb :Buffers<cr>
 nnoremap <silent><leader>sf :FZF<cr>
 nnoremap <silent><leader>sh :History<cr>
 nnoremap <silent><leader>st :Tags<cr>
-nnoremap <leader>sl :call InputStr("exact: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_buffer_search)<cr>/\C<c-r>i
-vnoremap <leader>sl :<c-u>call VisualToRegI()<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_buffer_search)<cr>/\C<c-r>i
+nnoremap <leader>sl :call InputStr("exact: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_buffer_search)<cr>/\C\V<c-r>i
+vnoremap <leader>sl :<c-u>call VisualToRegI()<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_buffer_search)<cr>/\C\V<c-r>i
 nnoremap <leader>sp /<c-r>=VimEscape(substitute(@+, '\n\+$', '', ''), g:sym_to_escape_for_buffer_search)<cr>
 nnoremap <silent><leader>sP :let @i=VimEscape(@+, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -F -- "<c-r>i"')<cr><cr>
 nnoremap <leader>sc :call InputStr("search: ")<cr>:let @i=VimEscape(@i, g:sym_to_escape_for_rg)<cr>:<c-r>=HistAddAndReturn('Rg --no-ignore-vcs -S -- "<c-r>i"')<cr>
