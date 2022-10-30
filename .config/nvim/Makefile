@@ -21,3 +21,10 @@ nvim-aprenita:
 		--node-modules-output-dir ~/work/aprenita/ui/node_modules \
 		--node-from-docker-path /node_modules
 		# --node-from-docker-path /pkg/node_modules \
+
+nvim-p182:
+	./make_nvim_executable \
+		--executable-name nvim-p182 \
+		--python-from-docker-image project-182-api \
+		--x-python-from-docker-image--entrypoint "poetry run python"
+

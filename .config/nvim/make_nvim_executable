@@ -3,6 +3,7 @@
 set -o nounset
 set -o errexit
 
+PYTHON_DOCKER_IMAGE_ENTRYPOINT="python"
 while (("$#")); do
     case "$1" in
     --executable-name)
@@ -19,6 +20,11 @@ while (("$#")); do
         ;;
     --python-from-docker-image)
         PYTHON_FROM_DOCKER_IMAGE="$2"
+        shift 2
+        ;;
+
+    --x-python-from-docker-image--entrypoint)
+        PYTHON_DOCKER_IMAGE_ENTRYPOINT="$2"
         shift 2
         ;;
 
@@ -179,7 +185,7 @@ fi
 if [ ! -z ${PYTHON_FROM_DOCKER_IMAGE+x} ]; then
     docker run --rm \
         --entrypoint=bash "${PYTHON_FROM_DOCKER_IMAGE}" \
-        -c "python -c \"${python_script_get_version}\"" \
+        -c "${PYTHON_DOCKER_IMAGE_ENTRYPOINT} -c \"${python_script_get_version}\"" \
         >"$PYTHON_VERSION"
     echo "IDENTIFIED PYTHON VERSION $(cat $PYTHON_VERSION)"
     docker_tmp_container=tmp_for_nvim
@@ -188,7 +194,7 @@ if [ ! -z ${PYTHON_FROM_DOCKER_IMAGE+x} ]; then
     sitepackages_paths=$(docker run \
         --name=${docker_tmp_container} \
         --entrypoint=bash "${PYTHON_FROM_DOCKER_IMAGE}" \
-        -c "python -c \"${python_script_get_sitepackages_paths}\"")
+        -c "${PYTHON_DOCKER_IMAGE_ENTRYPOINT} -c \"${python_script_get_sitepackages_paths}\"")
     for _path in $sitepackages_paths; do
         __path="$HELPERS_DIR/python_from_docker/$(echo "$_path" | sed s%/%%g)"
         mkdir -p "$__path"
