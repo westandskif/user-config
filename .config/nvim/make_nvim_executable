@@ -122,8 +122,7 @@ if [ ! -z ${NODE_FROM_VERSION+x} ]; then
 fi
 if [ -e "$NODE_VERSION" ] && [ ! -z ${NODE_FROM_DOCKER_IMAGE+x} ]; then
     echo "LOOKING FOR NODE MODULES"
-    to_path="$HELPERS_DIR/node_from_docker/$(echo "$NODE_FROM_DOCKER_IMAGE" | sed 's%/%%g; s%:%%g')"
-    mkdir -p "$to_path"
+    to_path=$(mktemp -d $HELPERS_DIR/node_from_docker.XXXX)
 
     docker_tmp_container=tmp_node_for_nvim
     docker rm -f "$docker_tmp_container" &>/dev/null || true
@@ -196,8 +195,7 @@ if [ ! -z ${PYTHON_FROM_DOCKER_IMAGE+x} ]; then
         --entrypoint=bash "${PYTHON_FROM_DOCKER_IMAGE}" \
         -c "${PYTHON_DOCKER_IMAGE_ENTRYPOINT} -c \"${python_script_get_sitepackages_paths}\"")
     for _path in $sitepackages_paths; do
-        __path="$HELPERS_DIR/python_from_docker/$(echo "$_path" | sed s%/%%g)"
-        mkdir -p "$__path"
+        __path=$(mktemp -d $HELPERS_DIR/python_from_docker.XXXX)
         docker cp "${docker_tmp_container}:${_path}/." "$__path"
         echo $__path >>"$PYTHON_SITEPACKAGES"
         echo $__path >>"$TAG_DIRS"

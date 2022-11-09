@@ -26,5 +26,9 @@ nvim-p182:
 	./make_nvim_executable \
 		--executable-name nvim-p182 \
 		--python-from-docker-image project-182-api \
-		--x-python-from-docker-image--entrypoint "poetry run python"
+		--x-python-from-docker-image--entrypoint "poetry run python" \
+		--node-from-version v18.12.0 \
+		--node-from-docker-image project-182-ui \
+		--node-modules-output-dir ~/own/project-182/ui/node_modules \
+		--node-from-docker-path /app/node_modules
 

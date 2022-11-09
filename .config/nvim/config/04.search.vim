@@ -35,3 +35,6 @@ endfunction
 let g:gutentags_ctags_extra_args = [
             \ '--exclude=build',
             \ ]
+let g:gutentags_ctags_exclude = [
+            \ '*.json',
+            \ ]
