@@ -1,7 +1,5 @@
-" let g:gh_color = "soft"
-" colorscheme ghdark
 function! TweakHighlights()
-    hi! SpellBad cterm=underline gui=underline ctermfg=243 guifg=#727272
+    hi! SpellBad cterm=underline gui=underline ctermfg=243 guifg=#727272 guisp=none
     " hi! GhGreen cterm=NONE gui=NONE ctermfg=114 guifg=#88a970
     " hi! GhBase5 cterm=NONE gui=NONE ctermfg=114 guifg=#d5d9dd
     " hi! Normal cterm=NONE gui=NONE ctermfg=114 guifg=#d5d9dd
@@ -15,7 +13,6 @@ function! TweakHighlights()
 endfunction
 autocmd ColorScheme * call TweakHighlights()
 
-" colorscheme space_vim_theme
 colorscheme sonokai
 
 
@@ -33,7 +30,6 @@ set backupcopy=auto
 " persist the undo tree for each file
 set undofile
 
-
 set termguicolors
 set hlsearch incsearch
 set number
@@ -46,13 +42,6 @@ set splitbelow
 set signcolumn=yes:1
 set encoding=utf-8
 set laststatus=2
-set statusline=%F         " Path to the file
-set statusline+=%<
-set statusline+=%=        " Switch to the right side
-set statusline=%F         " Path to the file
-set statusline+=%P        " Percentage
-set statusline+=\ of\     " Separator
-set statusline+=%L        " Total lines
 syntax on
 set pumheight=20
 set redrawtime=2000
@@ -66,8 +55,6 @@ let g:tagbar_sort = 0
 
 let g:context_enabled = 0
 let g:context_presenter = 'preview'
-let g:loaded_sql_completion = 0
-let g:python_highlight_func_calls = 0
 
 let g:qf_modifiable = 1
 let g:qf_join_changes = 1

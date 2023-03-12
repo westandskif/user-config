@@ -1,4 +1,10 @@
 call plug#begin('~/.local/share/nvim/plugged')
+
+" THEMES
+" https://github.com/rockerBOO/awesome-neovim#tree-sitter-supported-colorscheme
+Plug 'sainnhe/sonokai'
+" Plug 'liuchengxu/space-vim-theme'
+
 Plug 'darfink/vim-plist'
 Plug 'ludovicchabant/vim-gutentags'
 Plug 'majutsushi/tagbar'
@@ -9,14 +15,12 @@ Plug 'junegunn/fzf.vim'
 Plug 'tpope/vim-fugitive'
 Plug 'junegunn/gv.vim'
 
-Plug 'bling/vim-airline'
+" Plug 'bling/vim-airline'
+Plug 'itchyny/lightline.vim'
 
-" THEMES
-" https://github.com/rockerBOO/awesome-neovim#tree-sitter-supported-colorscheme
-Plug 'sainnhe/sonokai'
-" Plug 'liuchengxu/space-vim-theme'
 
-" Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+
 Plug 'sheerun/vim-polyglot'
 
 Plug 'liuchengxu/vim-which-key'
