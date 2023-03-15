@@ -20,8 +20,8 @@ Plug 'itchyny/lightline.vim'
 
 
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
-
-Plug 'sheerun/vim-polyglot'
+Plug 'yioneko/nvim-yati', { 'tag': '*' }
+" Plug 'sheerun/vim-polyglot'
 
 Plug 'liuchengxu/vim-which-key'
 
