@@ -91,9 +91,19 @@ touch "$PYTHON_SITEPACKAGES"
 NODE_VERSION="$HELPERS_DIR/NODE_VERSION"
 
 # assuming these are installed: curl
+# ON OSX MAKE SURE YOU DO:
+# brew install gnu-getopt && export PATH="/opt/homebrew/opt/gnu-getopt/bin:$PATH"
+# brew install bash
+
+
+# if ! command -v <the_command> &> /dev/null
+# then
+#     echo "<the_command> could not be found"
+#     exit
+# fi
 
 echo "INSTALLING SYSTEM LIBRARIES"
-brew install aspell ripgrep fd fzf bat jq
+brew install aspell ripgrep fd fzf bat jq bash gnu-getopt
 
 # installing universal ctags
 brew install --HEAD universal-ctags/universal-ctags/universal-ctags

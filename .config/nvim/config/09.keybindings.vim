@@ -9,6 +9,9 @@ inoremap 0p <c-r>"
 inoremap 0P <c-r>0
 nnoremap gd :lua vim.lsp.buf.definition()<CR>
 
+nnoremap <Up> Nzz
+nnoremap <Down> nzz
+
 " inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<CR>"
 " inoremap <Tab> <C-n>
 " inoremap <silent><expr> <esc> pumvisible() ? "\<C-n>" : "\<C-\>\<C-O>:call ncm2#manual_trigger()\<CR>"
@@ -35,6 +38,7 @@ vnoremap <F6> zL
 
 command! W :w
 command! Q :q
+command! Wq :wq
 
 " move between windows
 nnoremap gh <c-w>h
@@ -97,7 +101,7 @@ let g:which_key_map.q = { 'name' : '☰ QUICKFIX / LOCLIST' }
 let g:which_key_map.q.C = 'copy loclist to quickfix'
 let g:which_key_map.q.q = 'quit'
 let g:which_key_map.q.D = 'populate from git Diff (adjustable command)'
-nnoremap <leader>qD :CommandToQf git diff  --name-only --diff-filter=AM master...
+nnoremap <leader>qD :CommandToQf git diff --name-only --diff-filter=AM --cached
 nnoremap <silent> <leader>qC :call setqflist(getloclist(winnr()))<CR>:lclose<CR>:copen<CR>
 nnoremap <silent><expr> <leader>qq IsLocListOpen() ? ":lclose\<CR>" : ":cclose\<CR>"
 " go current

@@ -1,4 +1,4 @@
-set tabstop=4 softtabstop=4 shiftwidth=4
+set tabstop=4 softtabstop=4 shiftwidth=4 expandtab
 " autocmd FileType html setlocal expandtab tabstop=4 softtabstop=4 shiftwidth=4
 " autocmd FileType dockerfile setlocal expandtab tabstop=4 softtabstop=4 shiftwidth=4
 " autocmd FileType python setlocal expandtab tabstop=4 softtabstop=4 shiftwidth=4
