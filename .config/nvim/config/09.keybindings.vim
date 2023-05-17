@@ -160,15 +160,7 @@ function! RunRgWithOpts(command_suffix)
     let fzf_args = [
                 \command,
                 \1,
-                \fzf#vim#with_preview({'options': [
-                    \'--info=inline',
-                    \'--preview-window',
-                    \'right:60%',
-                    \'--bind',
-                    \'?:toggle-preview',
-                    \'--preview',
-                    \'bat --color=always --style=header,grid --line-range :300 {}'
-                \]}),
+                \fzf#vim#with_preview(),
                 \0]
     return call('fzf#vim#grep', fzf_args)
 endfunction

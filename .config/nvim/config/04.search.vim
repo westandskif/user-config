@@ -11,6 +11,7 @@ let g:fzf_action = {
 
 let $FZF_DEFAULT_OPTS="--bind ctrl-a:select-all,ctrl-f:preview-page-down,ctrl-b:preview-page-up --ansi"
 let $FZF_DEFAULT_COMMAND='fd --type f --ignore-file=.ignore --exclude=__pycache__ --exclude=uploaded_files --exclude="ui/dist" --exclude="build/"'
+let g:fzf_preview_window = ['right,50%', '?']
 
 function! RefreshSitePackageTags()
     let sitepackages = systemlist('echo $TAG_DIRS')
