@@ -28,14 +28,8 @@ function! GenerateSitePackageTags()
     let sitepackages = RefreshSitePackageTags()
     for path in sitepackages
         if strlen(path)
-            call system("bash -s", "pushd ".path." && rm -f tags && ctags -R --exclude=tests --exclude=build && sed -i '' '/\\/\\^ /d' tags && popd")
+            call system("bash -s", "pushd ".path." && rm -f tags && ctags -R --exclude=tests --exclude=build --exclude='*.html' --exclude='*.css' && sed -i '' '/\\/\\^ /d' tags && popd")
         endif
     endfor
 endfunction
 
-let g:gutentags_ctags_extra_args = [
-            \ '--exclude=build',
-            \ ]
-let g:gutentags_ctags_exclude = [
-            \ '*.json',
-            \ ]

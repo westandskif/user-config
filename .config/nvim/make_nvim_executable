@@ -243,6 +243,7 @@ if [ -e "$PYTHON_VERSION" ]; then
         black \
         flake8 \
         pylint \
+        ruff \
         sqlparse
     strings=(
         "black"
@@ -250,6 +251,7 @@ if [ -e "$PYTHON_VERSION" ]; then
         "isort"
         "pyflakes"
         "pylint"
+        "ruff"
         "pylsp"
         "sqlformat"
     )

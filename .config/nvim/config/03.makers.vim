@@ -13,6 +13,11 @@ let g:neomake_spelling_maker = {
 	\ 'args': ['%t'],
 	\ 'errorformat': '%f:%l:%c:%m',
 	\ }
+let g:neomake_python_ruff_maker = {
+    \ 'exe': 'ruff',
+    \ 'args': ['check', '-q', '--format', 'text'],
+    \ 'errorformat': '%f:%l:%c: %m',
+    \ } 
 :call neomake#cmd#disable(g:)
 
 let g:gutentags_generate_on_new = 0

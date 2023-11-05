@@ -1,11 +1,16 @@
 lua << EOF
 local nvim_lsp = require('lspconfig')
 
+local on_init = function(client, initialization_result)
+  if client.server_capabilities then
+    client.server_capabilities.documentFormattingProvider = false
+    client.server_capabilities.semanticTokensProvider = false  -- turn off semantic tokens
+  end
+end
+
 local on_attach = function(client, bufnr)
   local function buf_set_keymap(...) vim.api.nvim_buf_set_keymap(bufnr, ...) end
   local function buf_set_option(...) vim.api.nvim_buf_set_option(bufnr, ...) end
-
-  client.server_capabilities.semanticTokensProvider = nil
 
   --Enable completion triggered by <c-x><c-o>
   -- buf_set_option('omnifunc', 'v:lua.vim.lsp.omnifunc')
@@ -37,6 +42,7 @@ end
 -- PYTHON
 -- available settings at https://github.com/python-lsp/python-lsp-server/blob/develop/pylsp/config/schema.json
 nvim_lsp.pylsp.setup{
+    on_init = on_init,
     on_attach = on_attach,
     settings = {
         pylsp = {

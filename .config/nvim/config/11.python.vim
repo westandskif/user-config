@@ -45,7 +45,7 @@ endfunction
 function PythonSpecifics()
   nnoremap <buffer> <localleader>lff :Neoformat black<CR>
   nnoremap <buffer> <localleader>lfi :Neoformat isort<CR>
-  nnoremap <buffer> <localleader>lmq :Neomake flake8<CR>
+  nnoremap <buffer> <localleader>lmq :Neomake ruff<CR>
   nnoremap <buffer> <localleader>lma :Neomake pylint<CR>
   nnoremap <buffer> <silent> <localleader>lai :call AutoImport(expand('<cword>'))<CR>
 

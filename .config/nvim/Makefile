@@ -27,7 +27,15 @@ nvim-aprenita:
 	./make_nvim_executable \
 		--executable-name nvim-aprenita \
 		--python-from-version 3.9.7 \
+		--node-from-version 18 \
 		--python-from-docker-image aprenita-infrastructure_backend:master
+
+nvim-p190:
+	./make_nvim_executable \
+		--executable-name nvim-p190 \
+		--python-from-version 3.9.7 \
+		--node-from-version 18 \
+		--python-from-docker-image p190-backend
 
 nvim-poc-bgv:
 	./make_nvim_executable \

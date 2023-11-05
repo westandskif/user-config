@@ -4,8 +4,10 @@ inoremap jk <esc>
 inoremap Jk <esc>
 inoremap jK <esc>
 inoremap JK <esc>
+
+set langmap=йq,цw,уe,кr,еt,нy,гu,шi,щo,зp,х[,ъ],фa,ыs,вd,аf,пg,рh,оj,лk,дl,э',яz,чx,сc,мv,иb,тn,ьm,б'\,,ю.,ё`,ЙQ,ЦW,УE,КR,ЕT,НY,ГU,ШI,ЩO,ЗP,Х{,Ъ},ФA,ЫS,ВD,АF,ПG,РH,ОJ,ЛK,ДL,Э\",ЯZ,ЧX,СC,МV,ИB,ТN,ЬM,Б\<,Ю\>,Ё\~
+
 tnoremap jk <C-\><C-n>
-inoremap 0p <c-r>"
 inoremap 0P <c-r>0
 nnoremap gd :lua vim.lsp.buf.definition()<CR>
 
@@ -129,7 +131,7 @@ let g:which_key_map.j.c = 'Current buffer dir'
 let g:which_key_map.j.n = 'Notes'
 let g:which_key_map.j.r = 'Root dir'
 nnoremap <leader>jc :e%:p:h<cr>
-nnoremap <leader>jn :tabnew .notes<CR>
+nnoremap <leader>jn :e .notes<CR>
 nnoremap <leader>jr :e.<cr>
 
 
@@ -265,9 +267,9 @@ nnoremap <leader>cR :syntax off<CR>:let _current_buffer=bufnr("%")<CR>:bufdo exe
 nnoremap <leader>cf :!cp '%:p' '%:p:h/.%:e'<Left><Left><Left><Left><Left>
 nnoremap <leader>cT :call GenerateSitePackageTags()<CR>
 nnoremap <silent> <leader>cp :let @0=@%<CR>:let @+=@%<CR>
+nnoremap <silent> <leader>cP :let @0=@% . ':' . line('.')<CR>:let @+=@0<CR>
 nnoremap <silent> <leader>ct :%s/\s\+$//g<CR>
 
 call which_key#register('<Space>', 'g:which_key_map')
 nnoremap <silent> <leader> :<c-u>WhichKey '<Space>'<CR>
 vnoremap <silent> <leader> :<c-u>WhichKeyVisual '<Space>'<CR>
-

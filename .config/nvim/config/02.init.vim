@@ -1,6 +1,6 @@
 function! TweakHighlights()
     " hi! SpellBad cterm=underline gui=underline ctermfg=243 guifg=#727272 guisp=none
-    hi! SpellBad cterm=underline gui=underline
+    hi! SpellBad term=underline cterm=underline
     " hi! GhGreen cterm=NONE gui=NONE ctermfg=114 guifg=#88a970
     " hi! GhBase5 cterm=NONE gui=NONE ctermfg=114 guifg=#d5d9dd
     " hi! Normal cterm=NONE gui=NONE ctermfg=114 guifg=#d5d9dd
