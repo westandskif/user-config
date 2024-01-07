@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+source "$(dirname $0)/base"
+source "$(dirname $0)/base_pkg_install"
+
+echo "$PYTHON_VERSION"
+
+_python_version=$(cat $PYTHON_VERSION)
+echo "INSTALLING NVIM PYTHON $_python_version TOOLS"
+
+CC=clang "$PYENV" install -s "$_python_version"
+"$PYENV" rehash
+PYTHON_PYENV_DIR=$($PYENV prefix $_python_version)
+VENV_DIR="$COMMON_HELPERS_DIR/nvim-$_python_version"
+
+if [[ ! -d "$VENV_DIR" ]]; then
+    $PYTHON_PYENV_DIR/bin/pip install virtualenv
+    $PYTHON_PYENV_DIR/bin/virtualenv \
+        -p $PYTHON_PYENV_DIR/bin/python \
+        $VENV_DIR
+    echo "CREATED PYTHON VIRTUALENV $VENV_DIR"
+fi
+
+python_packages=(
+    "black"
+    "flake8"
+    "isort"
+    "pyflakes"
+    "pylint"
+    "ruff"
+    "pylsp"
+    "sqlformat"
+)
+executables=$python_packages
+$VENV_DIR/bin/python -m pip install -U --no-cache-dir $python_packages
+export_python_path='export PYTHONPATH="'"$(cat "$PYTHON_SITEPACKAGES" | paste -sd ':' -)"'"'
+for i in "${python_packages[@]}"; do
+    if [[ "$i" == pylint ]] || [[ "$i" == pylsp ]]; then
+        _export_python_path="$export_python_path"
+    else
+        _export_python_path=""
+    fi
+    _script="#!/bin/bash
+set -o nounset
+set -o errexit
+$_export_python_path
+exec $VENV_DIR/bin/$i \"\$@\""
+    printf "$_script" >"$EXECUTABLES_DIR_TO_EXPOSE/$i"
+    chmod 0777 "$EXECUTABLES_DIR_TO_EXPOSE/$i"
+done

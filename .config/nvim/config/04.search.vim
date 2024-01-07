@@ -13,7 +13,7 @@ let $FZF_DEFAULT_OPTS="--bind ctrl-a:select-all,ctrl-f:preview-page-down,ctrl-b:
 let $FZF_DEFAULT_COMMAND='fd --type f --ignore-file=.ignore --exclude=__pycache__ --exclude=uploaded_files --exclude="ui/dist" --exclude="build/"'
 let g:fzf_preview_window = ['right,50%', '?']
 
-function! RefreshSitePackageTags()
+function! SetTags()
     let sitepackages = systemlist('echo $TAG_DIRS')
     for path in sitepackages
         if stridx(&tags, path) == -1
@@ -22,14 +22,4 @@ function! RefreshSitePackageTags()
     endfor
     return sitepackages
 endfunction
-autocmd FileType python :call RefreshSitePackageTags()
-
-function! GenerateSitePackageTags()
-    let sitepackages = RefreshSitePackageTags()
-    for path in sitepackages
-        if strlen(path)
-            call system("bash -s", "pushd ".path." && rm -f tags && ctags -R --exclude=tests --exclude=build --exclude='*.html' --exclude='*.css' && sed -i '' '/\\/\\^ /d' tags && popd")
-        endif
-    endfor
-endfunction
-
+autocmd VimEnter * :call SetTags()

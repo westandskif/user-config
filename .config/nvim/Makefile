@@ -1,56 +1,33 @@
 .PHONY: nvim nvim-convtools nvim-aprenita
 
-nvim:
-	./make_nvim_executable \
-		--executable-name nvim-python-3.9.7 \
-		--python-from-version 3.9.7 \
-		--node-from-version 18
-	sudo ln -sf /usr/local/bin/nvim-python-3.9.7 /usr/local/bin/nvim
 
-nvim-convtools:
-	./make_nvim_executable \
-		--executable-name nvim-convtools \
-		--python-from-venv-path ~/.pyenv/versions/convtools-3.9
-
-# nvim-aprenita:
+# nvim-p190:
 # 	./make_nvim_executable \
-# 		--executable-name nvim-aprenita \
+# 		--executable-name nvim-p190 \
 # 		--python-from-version 3.9.7 \
-# 		--python-from-docker-image aprenita-infrastructure_backend \
-# 		--node-from-version v16.8.0 \
-# 		--node-from-docker-image aprenita-infrastructure_frontend:ts \
-# 		--node-modules-output-dir ~/work/aprenita/ui/node_modules \
-# 		--node-from-docker-path /node_modules
-# 		# --node-from-docker-path /pkg/node_modules \
+# 		--node-from-version 18 \
+# 		--python-from-docker-image p190-backend \
+# 	    --x-python-from-docker-image--entrypoint "poetry run python"
 
-nvim-aprenita:
-	./make_nvim_executable \
-		--executable-name nvim-aprenita \
-		--python-from-version 3.9.7 \
-		--node-from-version 18 \
-		--python-from-docker-image aprenita-infrastructure_backend:master
+nvim-convtools: export EXECUTABLE_NAME=nvim-convtools
+nvim-convtools:
+	VENV_PATH=~/.pyenv/versions/convtools-3.9 \
+		./scripts/py_from_venv
+	./scripts/nvim_py_tools
+	./scripts/generate_tags
+	./scripts/nvim_executable
 
-nvim-p190:
-	./make_nvim_executable \
-		--executable-name nvim-p190 \
-		--python-from-version 3.9.7 \
-		--node-from-version 18 \
-		--python-from-docker-image p190-backend
 
-nvim-poc-bgv:
-	./make_nvim_executable \
-		--executable-name nvim-poc-bgv \
-		--python-from-version 3.10.9 \
-		--python-from-docker-image poc-publishing-backend-backend:latest \
-		--node-from-version v16.8.0
-
-nvim-p182:
-	./make_nvim_executable \
-		--executable-name nvim-p182 \
-		--python-from-docker-image project-182-api \
-		--x-python-from-docker-image--entrypoint "poetry run python" \
-		--node-from-version v18.12.0 \
-		--node-from-docker-image project-182-ui \
-		--node-modules-output-dir ~/own/project-182/ui/node_modules \
-		--node-from-docker-path /context/node_modules
+nvim-cp: export EXECUTABLE_NAME=nvim-cp
+nvim-cp:
+	DOCKER_RUN_OPTS="--entrypoint=python aprenita-infrastructure_backend:apple_go_manual" \
+		./scripts/py_from_docker
+	DOCKER_RUN_OPTS="--entrypoint=bash aprenita-infrastructure_frontend:apple_go_manual" \
+		DOCKER_NODE_MODULES_PATH="/node_modules" \
+		NODE_MODULES_OUTPUT_DIR="$$HOME/work/aprenita/ui/node_modules" \
+		./scripts/js_from_docker
+	./scripts/nvim_py_tools
+	./scripts/nvim_js_tools
+	./scripts/generate_tags
+	./scripts/nvim_executable
 

@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+source "$(dirname $0)/base"
+
+echo "INSTALLING NVIM"
+if [[ ! -x "$(command -v nvim)" ]] || [[ ${FORCE_REINSTALL:-0} -eq 1 ]]; then
+    brew install neovim
+    brew unlink neovim
+
+    curl -fLo \
+        "$XDG_DATA_HOME"/nvim/site/autoload/plug.vim \
+        --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+fi
+NVIM_ROOT="$(brew --prefix neovim)"
+
+echo "CREATING PROJECT NVIM EXECUTABLE"
+
+export_path='export PATH="'"$EXECUTABLES_DIR_TO_EXPOSE"':$PATH"'
+export_tag_dirs='export TAG_DIRS="'"$(cat "$TAG_DIRS")"'"'
+
+_script="#!/bin/bash
+set -o nounset
+set -o errexit
+
+$export_path
+$export_tag_dirs
+
+export XDG_CONFIG_HOME=$XDG_CONFIG_HOME \\
+    && export XDG_DATA_HOME=$XDG_DATA_HOME \\
+    && exec $NVIM_ROOT/bin/nvim \"\$@\"\n"
+
+printf "$_script" >"$EXECUTABLE"
+chmod 0777 "$EXECUTABLE"
+
+echo "Installing nvim plugins"
+"$EXECUTABLE" --headless +PlugInstall +PlugUpgrade +qa
+
+sudo ln -sf "$EXECUTABLE" "/usr/local/bin/$EXECUTABLE_NAME"

@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+echo "INSTALLING SYSTEM LIBRARIES"
+brew install aspell ripgrep fd fzf bat jq bash gnu-getopt
+
+# installing universal ctags
+brew install --HEAD universal-ctags/universal-ctags/universal-ctags
+
+if [ ! -d "$HOME/.pyenv" ]; then
+    echo "INSTALLING PYENV"
+    git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+else
+    echo "PYENV ALREADY INSTALLED"
+fi
+PYENV="${PYENV_ROOT:-$HOME/.pyenv}/bin/pyenv"
+
+# installing nvm
+export NVM_DIR="$HOME/.nvm"
+if [ ! -d "$HOME/.nvm" ]; then
+    echo "INSTALLING NVM"
+    git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+    cd "$NVM_DIR"
+    git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1)`
+    cd -
+else
+    echo "NVM ALREADY INSTALLED"
+fi
+cd "$NVM_DIR"
+\. "$NVM_DIR/nvm.sh"
+cd -
+NVM="nvm"

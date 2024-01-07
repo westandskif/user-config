@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+echo "$EXECUTABLE_NAME"
+
+XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+# NVIM_CONFIG="$XDG_CONFIG_HOME/nvim"
+
+COMMON_HELPERS_DIR="$XDG_DATA_HOME/nvim-helpers/common"
+
+HELPERS_DIR="$XDG_DATA_HOME/nvim-helpers/$EXECUTABLE_NAME"
+mkdir -p "$HELPERS_DIR"
+
+EXECUTABLES_DIR_TO_EXPOSE="$HELPERS_DIR/executables_to_expose"
+mkdir -p "$EXECUTABLES_DIR_TO_EXPOSE"
+
+EXECUTABLE="$HELPERS_DIR/$EXECUTABLE_NAME"
+
+# TAGS
+TAG_DIRS="$HELPERS_DIR/TAG_DIRS"
+touch "$TAG_DIRS"
+
+# PYTHON
+PYTHON_VERSION="$HELPERS_DIR/PYTHON_VERSION"
+PYTHON_SITEPACKAGES="$HELPERS_DIR/PYTHON_SITEPACKAGES"
+touch "$PYTHON_SITEPACKAGES"
+
+_PYTHON_SCRIPT_GET_VERSION='import sys; print(sys.version.split()[0])'
+_PYTHON_SCRIPT_GET_SITEPACKAGES_PATHS='import sys; list(map(print, (p for p in sys.path if "site-packages" in p or "src" in p)))'
+
+# NODE
+NODE_MODULES="$HELPERS_DIR/NODE_MODULES"
+

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+source "$(dirname $0)/base"
+echo "$VENV_PATH"
+
+if [ -e "$PYTHON_VERSION" ]; then
+    rm -rf "$PYTHON_VERSION" "$PYTHON_SITEPACKAGES" || true
+fi
+
+$VENV_PATH/bin/python \
+    -c "$_PYTHON_SCRIPT_GET_VERSION" \
+    >"$PYTHON_VERSION"
+echo "IDENTIFIED PYTHON VERSION $(cat $PYTHON_VERSION)"
+
+sitepackages_paths=$($VENV_PATH/bin/python -c "$_PYTHON_SCRIPT_GET_SITEPACKAGES_PATHS")
+echo "$sitepackages_paths" >>"$PYTHON_SITEPACKAGES"
+echo "REUSING EXISTING PYTHON SITEPACKAGES $(cat $PYTHON_SITEPACKAGES)"

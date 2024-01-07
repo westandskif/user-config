@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+source "$(dirname $0)/base"
+echo "$DOCKER_RUN_OPTS"
+
+if [ -e "$PYTHON_VERSION" ]; then
+    rm -rf "$PYTHON_VERSION" "$PYTHON_SITEPACKAGES" || true
+fi
+
+docker run --rm $DOCKER_RUN_OPTS \
+    -c "$_PYTHON_SCRIPT_GET_VERSION" \
+    >"$PYTHON_VERSION"
+echo "IDENTIFIED PYTHON VERSION $(cat $PYTHON_VERSION)"
+
+
+docker_tmp_container=tmp_for_nvim
+docker rm -f $docker_tmp_container &>/dev/null || true
+sitepackages_paths=$(docker run \
+    --name=$docker_tmp_container \
+    $DOCKER_RUN_OPTS \
+    -c "$_PYTHON_SCRIPT_GET_SITEPACKAGES_PATHS")
+
+
+
+for _path in $sitepackages_paths; do
+    echo "COPYING PYTHON FROM DOCKER $_path"
+    __path=$(mktemp -d $HELPERS_DIR/python_from_docker.XXXX)
+    docker cp "${docker_tmp_container}:${_path}/." "$__path"
+    echo $__path >>"$PYTHON_SITEPACKAGES"
+done
+docker rm -f $docker_tmp_container || true

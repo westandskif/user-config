@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+source "$(dirname $0)/base"
+
+if [ -e "$TAG_DIRS" ]; then
+    rm "$TAG_DIRS"
+fi
+
+if [ -e "$PYTHON_SITEPACKAGES" ]; then
+    cat "$PYTHON_SITEPACKAGES" >> "$TAG_DIRS"
+fi
+if [ -e "$NODE_MODULES" ]; then
+    cat "$NODE_MODULES" >> "$TAG_DIRS"
+fi
+
+for i in $(cat $TAG_DIRS); do
+    echo "$i"
+    pushd "$i"
+    ctags -R \
+        --languages="Python,Rust,TypeScript,JavaScript" \
+        --exclude=tests \
+        --exclude=build \
+        --exclude=dist \
+        --exclude="*.min.js" \
+        2>/dev/null && \
+        sed -i '' '/\/\^[[:space:]]/d' tags
+    popd
+done

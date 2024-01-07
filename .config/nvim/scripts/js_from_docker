@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+source "$(dirname $0)/base"
+echo "$DOCKER_RUN_OPTS"
+echo "$DOCKER_NODE_MODULES_PATH"
+echo "$NODE_MODULES_OUTPUT_DIR"
+
+if [ -e "$NODE_MODULES" ]; then
+    rm -rf "$NODE_MODULES" || true
+fi
+
+to_path=$(mktemp -d $HELPERS_DIR/node_from_docker.XXXX)
+
+docker_tmp_container=tmp_node_for_nvim
+docker rm -f "$docker_tmp_container" &>/dev/null || true
+
+docker run \
+    --name="$docker_tmp_container" \
+    $DOCKER_RUN_OPTS \
+    -c "true"
+
+docker cp "$docker_tmp_container:$DOCKER_NODE_MODULES_PATH/." "$to_path"
+echo "COPIED NODE MODULES TO $to_path"
+docker rm -f "$docker_tmp_container" || true
+
+echo "$to_path" > "$NODE_MODULES"
+sudo ln -sf "$to_path" "$NODE_MODULES_OUTPUT_DIR"
