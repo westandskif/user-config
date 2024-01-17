@@ -31,3 +31,21 @@ nvim-cp:
 	./scripts/generate_tags
 	./scripts/nvim_executable
 
+
+nvim-vp: export EXECUTABLE_NAME=nvim-vp
+nvim-vp:
+	VENV_PATH=~/.pyenv/versions/aprenita-virtual-people \
+		./scripts/py_from_venv
+	./scripts/nvim_py_tools
+	./scripts/generate_tags
+	./scripts/nvim_executable
+
+
+nvim-p271: export EXECUTABLE_NAME=nvim-p271
+nvim-p271:
+	VENV_PATH=~/.pyenv/versions/p271 \
+		./scripts/py_from_venv
+	./scripts/nvim_py_tools
+	./scripts/generate_tags
+	./scripts/nvim_executable
+

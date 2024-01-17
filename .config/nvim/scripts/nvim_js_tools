@@ -10,13 +10,13 @@ NODE_VERSION="${NODE_VERSION:-20}"
 echo "INSTALLING NVIM JS $NODE_VERSION TOOLS"
 
 nvm which "$NODE_VERSION" || nvm install "$NODE_VERSION"
-nvm exec "$NODE_VERSION" npm install -g \
-    typescript-language-server \
-    typescript-formatter \
-    typescript \
-    prettier
-node_bins=$(dirname $(nvm which "$NODE_VERSION"))
 pkgs=(
+    "typescript-language-server"
+    "typescript-formatter"
+    "typescript"
+    "prettier"
+)
+binaries=(
     "typescript-language-server"
     "tsfmt"
     "node"
@@ -24,7 +24,10 @@ pkgs=(
     "tsserver"
     "prettier"
 )
-for i in "${pkgs[@]}"; do
+nvm exec "$NODE_VERSION" npm install -g "${pkgs[@]}"
+node_bins=$(dirname $(nvm which "$NODE_VERSION"))
+
+for i in "${binaries[@]}"; do
     _script="#!/bin/bash
 set -o nounset
 set -o errexit

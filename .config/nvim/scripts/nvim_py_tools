@@ -24,20 +24,30 @@ if [[ ! -d "$VENV_DIR" ]]; then
     echo "CREATED PYTHON VIRTUALENV $VENV_DIR"
 fi
 
-python_packages=(
+packages=(
     "black"
     "flake8"
     "isort"
     "pyflakes"
     "pylint"
+    "python-lsp-server"
     "ruff"
+    "sqlparse"
+)
+binaries=(
+    "black"
+    "flake8"
+    "isort"
+    "pyflakes"
+    "pylint"
     "pylsp"
+    "ruff"
     "sqlformat"
 )
-executables=$python_packages
-$VENV_DIR/bin/python -m pip install -U --no-cache-dir $python_packages
+
+$VENV_DIR/bin/python -m pip install -U --no-cache-dir "${packages[@]}"
 export_python_path='export PYTHONPATH="'"$(cat "$PYTHON_SITEPACKAGES" | paste -sd ':' -)"'"'
-for i in "${python_packages[@]}"; do
+for i in "${binaries[@]}"; do
     if [[ "$i" == pylint ]] || [[ "$i" == pylsp ]]; then
         _export_python_path="$export_python_path"
     else
