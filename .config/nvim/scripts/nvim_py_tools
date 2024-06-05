@@ -33,6 +33,7 @@ packages=(
     "python-lsp-server"
     "ruff"
     "sqlparse"
+    "mypy"
 )
 binaries=(
     "black"
@@ -43,6 +44,7 @@ binaries=(
     "pylsp"
     "ruff"
     "sqlformat"
+    "mypy"
 )
 
 $VENV_DIR/bin/python -m pip install -U --no-cache-dir "${packages[@]}"

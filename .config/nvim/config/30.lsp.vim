@@ -67,11 +67,11 @@ nvim_lsp.rust_analyzer.setup{
 
 
 -- TS
--- nvim_lsp.tsserver.setup{
---     -- cmd = {"/home/nik/work/aprenita/.githooks/bin/typescript-language-server", "--stdio"},
---     cmd = {"typescript-language-server", "--stdio"},
---     on_attach = on_attach,
--- }
+nvim_lsp.tsserver.setup{
+    -- cmd = {"/home/nik/work/aprenita/.githooks/bin/typescript-language-server", "--stdio"},
+    cmd = {"typescript-language-server", "--stdio"},
+    on_attach = on_attach,
+}
 
 EOF
 

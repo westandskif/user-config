@@ -47,6 +47,7 @@ syntax on
 set pumheight=20
 set redrawtime=2000
 set clipboard=unnamedplus
+" set virtualedit=block
 let g:netrw_altv = 1
 let g:netrw_alto = 1
 

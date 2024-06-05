@@ -31,6 +31,7 @@ nnoremap <F3> <c-u>
 nnoremap <F4> <c-d>
 nnoremap <F5> zH
 nnoremap <F6> zL
+nnoremap <F7> :normal! zszH<cr>
 vnoremap <F1> <c-y>
 vnoremap <F2> <c-e>
 vnoremap <F3> <c-u>
@@ -85,8 +86,10 @@ nnoremap <leader>vr :source .s.vim<cr>
 
 
 let g:which_key_map.m = {'name': '☰ MODE'}
-let g:which_key_map.m.t = 'tabbar toggle'
+let g:which_key_map.m.t = 'toggle tabbar'
 nnoremap <leader>mt :TagbarToggle<CR>
+let g:which_key_map.m.c = 'toggle context'
+nnoremap <leader>mc :ContextToggle<CR>
 
 
 function! IsLocListOpen()
@@ -237,12 +240,6 @@ let g:which_key_map.l.a = { 'name' : '☰ Add' }
 let g:which_key_map.l.a.i = 'import'
 let g:which_key_map.l.a.w = 'word'
 nnoremap <leader>law :SpellingAddWord<cr>
-
-let g:which_key_map.l.t = { 'name' : '☰ Toggle' }
-let g:which_key_map.l.t.c = 'toggle context'
-let g:which_key_map.l.t.s = 'toggle spelling'
-nnoremap <leader>ltc :ContextToggle<CR>
-nnoremap <leader>lts :SpellingToggle<CR>
 
 let g:which_key_map.l.f = { 'name': '☰ Fix' }
 let g:which_key_map.l.f.a = 'all format'

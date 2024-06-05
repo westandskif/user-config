@@ -15,7 +15,7 @@ let g:neomake_spelling_maker = {
 	\ }
 let g:neomake_python_ruff_maker = {
     \ 'exe': 'ruff',
-    \ 'args': ['check', '--quiet', '--no-fix'],
+    \ 'args': ['check', '--quiet', '--no-fix', '--output-format', 'text'],
     \ 'errorformat': '%f:%l:%c: %m',
     \ }
 :call neomake#cmd#disable(g:)

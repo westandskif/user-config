@@ -41,11 +41,20 @@ nvim-vp:
 	./scripts/nvim_executable
 
 
-nvim-p271: export EXECUTABLE_NAME=nvim-p271
-nvim-p271:
-	VENV_PATH=~/.pyenv/versions/p271 \
+nvim-synclane: export EXECUTABLE_NAME=nvim-synclane
+nvim-synclane:
+	VENV_PATH=~/.pyenv/versions/synclane-3.9 \
 		./scripts/py_from_venv
 	./scripts/nvim_py_tools
+	./scripts/nvim_js_tools
 	./scripts/generate_tags
 	./scripts/nvim_executable
 
+
+nvim-pub: export EXECUTABLE_NAME=nvim-pub
+nvim-pub:
+	DOCKER_RUN_OPTS="--entrypoint=python publishing-backend-backend:latest" \
+		./scripts/py_from_docker
+	./scripts/nvim_py_tools
+	./scripts/generate_tags
+	./scripts/nvim_executable
