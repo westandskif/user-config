@@ -5,22 +5,12 @@ inoremap Jk <esc>
 inoremap jK <esc>
 inoremap JK <esc>
 
-" set langmap=йq,цw,уe,кr,еt,нy,гu,шi,щo,зp,х[,ъ],фa,ыs,вd,аf,пg,рh,оj,лk,дl,э',яz,чx,сc,мv,иb,тn,ьm,б'\,,ю.,ё`,ЙQ,ЦW,УE,КR,ЕT,НY,ГU,ШI,ЩO,ЗP,Х{,Ъ},ФA,ЫS,ВD,АF,ПG,РH,ОJ,ЛK,ДL,Э\",ЯZ,ЧX,СC,МV,ИB,ТN,ЬM,Б\<,Ю\>,Ё\~
-
 tnoremap jk <C-\><C-n>
 inoremap 0P <c-r>0
 nnoremap gd :lua vim.lsp.buf.definition()<CR>
 
 nnoremap <Up> Nzz
 nnoremap <Down> nzz
-
-" inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<CR>"
-" inoremap <Tab> <C-n>
-" inoremap <silent><expr> <esc> pumvisible() ? "\<C-n>" : "\<C-\>\<C-O>:call ncm2#manual_trigger()\<CR>"
-
-inoremap <Tab> <C-n>
-inoremap <silent><expr> <CR> pumvisible() ? compe#confirm('<CR>') : "\<CR>"
-inoremap <silent><expr> <esc> pumvisible() ? compe#close('<C-e>') : compe#complete()
 
 onoremap il :<c-u>normal! _vg_<cr>
 vnoremap P "0p
@@ -110,7 +100,7 @@ nnoremap <leader>qD :CommandToQf git diff --name-only --diff-filter=AM --cached
 nnoremap <silent> <leader>qC :call setqflist(getloclist(winnr()))<CR>:lclose<CR>:copen<CR>
 nnoremap <silent><expr> <leader>qq IsLocListOpen() ? ":lclose\<CR>" : ":cclose\<CR>"
 " go current
-nnoremap <silent><expr> gc IsLocListOpen() ? ":ll\<CR>zz" : ":cc\<CR>zz"
+nnoremap <silent><expr> gC IsLocListOpen() ? ":ll\<CR>zz" : ":cc\<CR>zz"
 " go next
 nnoremap <silent><expr> gn IsLocListOpen() ? ":lnext\<CR>zz" : ":cnext\<CR>zz"
 " go Next file

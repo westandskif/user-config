@@ -48,6 +48,7 @@ function PythonSpecifics()
   nnoremap <buffer> <localleader>lmq :Neomake ruff<CR>
   nnoremap <buffer> <localleader>lma :Neomake pylint<CR>
   nnoremap <buffer> <silent> <localleader>lai :call AutoImport(expand('<cword>'))<CR>
+  vnoremap <buffer> <silent> <localleader>lff :<c-u>silent exec "!black --skip-magic-trailing-comma --line-length=200 --line-ranges " . line("'<") . "-" . line("'>") . " " . expand("%")<cr>
 
   " preventing vim.lsp.tagfunc installation
   setlocal tagfunc=Noop
@@ -56,3 +57,5 @@ endfunction
 autocmd FileType python :call PythonSpecifics()
 " let g:polyglot_disabled = ['python-indent']
 let g:python_pep8_indent_searchpair_timeout = 20
+
+

@@ -20,7 +20,6 @@ Plug 'itchyny/lightline.vim'
 
 
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
-Plug 'yioneko/nvim-yati', { 'tag': '*' }
 " Plug 'sheerun/vim-polyglot'
 
 Plug 'liuchengxu/vim-which-key'
@@ -31,13 +30,22 @@ Plug 'stefandtw/quickfix-reflector.vim'
 Plug 'neomake/neomake'
 Plug 'sbdchd/neoformat'
 
+" Plug 'L3MON4D3/LuaSnip', {'tag': 'v2.*', 'do': 'make install_jsregexp'}
+" https://ejmastnak.com/tutorials/vim-latex/luasnip/
+
 " COMPLETION
 Plug 'neovim/nvim-lspconfig'
-Plug 'hrsh7th/nvim-compe'
+" Plug 'hrsh7th/nvim-compe' -- DROP ONCE nvim-cmp is set up
+Plug 'hrsh7th/cmp-nvim-lsp'
+Plug 'hrsh7th/cmp-buffer'
+Plug 'hrsh7th/cmp-path'
+Plug 'hrsh7th/cmp-cmdline'
+Plug 'hrsh7th/nvim-cmp'
+
 
 Plug 'hashivim/vim-terraform', {'for': 'terraform'}
 
-Plug 'wellle/context.vim'
+" Plug 'wellle/context.vim'
 
 Plug 'farfanoide/inflector.vim'
 

@@ -11,7 +11,7 @@
 
 nvim-convtools: export EXECUTABLE_NAME=nvim-convtools
 nvim-convtools:
-	VENV_PATH=~/.pyenv/versions/convtools-3.9 \
+	VENV_PATH=~/.pyenv/versions/convtools-3.10 \
 		./scripts/py_from_venv
 	./scripts/nvim_py_tools
 	./scripts/generate_tags
