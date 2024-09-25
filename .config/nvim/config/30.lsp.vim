@@ -6,13 +6,13 @@ lua <<EOF
     virtual_text = true,
     severity_sort = true,
   })
-  vim.api.nvim_create_autocmd('DiagnosticChanged', {
-    callback = function(args)
-      vim.diagnostic.setloclist()
-      -- local diagnostics = args.data.diagnostics
-      -- vim.print(diagnostics)
-    end,
-  })
+  -- vim.api.nvim_create_autocmd('DiagnosticChanged', {
+  --   callback = function(args)
+  --     local diagnostics = args.data.diagnostics
+  --     vim.print(diagnostics)
+  --     vim.diagnostic.setloclist()
+  --   end,
+  -- })
   -- Set up nvim-cmp.
   local cmp = require'cmp'
 

@@ -96,7 +96,9 @@ let g:which_key_map.q = { 'name' : '☰ QUICKFIX / LOCLIST' }
 let g:which_key_map.q.C = 'copy loclist to quickfix'
 let g:which_key_map.q.q = 'quit'
 let g:which_key_map.q.r = 'reset diagnostic & drop loclist'
+let g:which_key_map.q.d = 'diagnostic to loclist'
 nnoremap <leader>qr :lua vim.diagnostic.reset()<cr>:call setqflist([])<cr>
+nnoremap <leader>qd :lua vim.diagnostic.setloclist()<cr>
 nnoremap <silent> <leader>qC :call setqflist(getloclist(winnr()))<CR>:lclose<CR>:copen<CR>
 nnoremap <silent><expr> <leader>qq IsLocListOpen() ? ":lclose\<CR>" : ":cclose\<CR>"
 " go current
