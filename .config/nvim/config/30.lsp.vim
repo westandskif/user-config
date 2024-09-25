@@ -1,6 +1,18 @@
 set completeopt=menuone,noselect
 
 lua <<EOF
+  vim.diagnostic.config({
+    underline = false,
+    virtual_text = true,
+    severity_sort = true,
+  })
+  vim.api.nvim_create_autocmd('DiagnosticChanged', {
+    callback = function(args)
+      vim.diagnostic.setloclist()
+      -- local diagnostics = args.data.diagnostics
+      -- vim.print(diagnostics)
+    end,
+  })
   -- Set up nvim-cmp.
   local cmp = require'cmp'
 

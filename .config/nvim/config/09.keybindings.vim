@@ -95,8 +95,8 @@ command! -nargs=1 CommandToQf :call PopulateQf('<args>')
 let g:which_key_map.q = { 'name' : '☰ QUICKFIX / LOCLIST' }
 let g:which_key_map.q.C = 'copy loclist to quickfix'
 let g:which_key_map.q.q = 'quit'
-let g:which_key_map.q.D = 'populate from git Diff (adjustable command)'
-nnoremap <leader>qD :CommandToQf git diff --name-only --diff-filter=AM --cached
+let g:which_key_map.q.r = 'reset diagnostic & drop loclist'
+nnoremap <leader>qr :lua vim.diagnostic.reset()<cr>:call setqflist([])<cr>
 nnoremap <silent> <leader>qC :call setqflist(getloclist(winnr()))<CR>:lclose<CR>:copen<CR>
 nnoremap <silent><expr> <leader>qq IsLocListOpen() ? ":lclose\<CR>" : ":cclose\<CR>"
 " go current
@@ -212,19 +212,12 @@ vnoremap <silent><leader>sw :<c-u>call VisualToRegI() <cr>:let @i=VimEscape(@i, 
 let g:which_key_map.l = { 'name' : '☰ LANGUAGE' }
 " =================================================
 
-let g:which_key_map.l.d = 'go to definition'
 let g:which_key_map.l.m = { 'name' : '☰ Make' }
 let g:which_key_map.l.m.q = 'Quick'
 let g:which_key_map.l.m.a = 'All'
 let g:which_key_map.l.m.Q = { 'name' : '☰ Quickfix' }
 let g:which_key_map.l.m.Q.Q = 'Quick'
 let g:which_key_map.l.m.Q.A = 'All'
-
-nnoremap <leader>ld :call LanguageClient#textDocument_definition()<CR>
-nnoremap <leader>lh :call LanguageClient#textDocument_hover()<CR>
-nnoremap <leader>lma :Neomake<cr>
-nnoremap <leader>lmQQ :call NeomakeQf(neomake_qf_lint_quick)<CR>
-nnoremap <leader>lmQA :call NeomakeQf(neomake_qf_lint_full)<CR>
 
 let g:which_key_map.l.a = { 'name' : '☰ Add' }
 let g:which_key_map.l.a.i = 'import'

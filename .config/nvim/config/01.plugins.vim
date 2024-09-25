@@ -27,7 +27,7 @@ Plug 'liuchengxu/vim-which-key'
 Plug 'Asheq/close-buffers.vim'
 Plug 'stefandtw/quickfix-reflector.vim'
 
-Plug 'neomake/neomake'
+Plug 'mfussenegger/nvim-lint'
 Plug 'sbdchd/neoformat'
 
 " Plug 'L3MON4D3/LuaSnip', {'tag': 'v2.*', 'do': 'make install_jsregexp'}
