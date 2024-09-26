@@ -6,14 +6,33 @@ lua <<EOF
     virtual_text = true,
     severity_sort = true,
   })
-  -- vim.api.nvim_create_autocmd('DiagnosticChanged', {
-  --   callback = function(args)
-  --     local diagnostics = args.data.diagnostics
-  --     vim.print(diagnostics)
-  --     vim.diagnostic.setloclist()
-  --   end,
-  -- })
-  -- Set up nvim-cmp.
+  function on_lint_finish(callback)
+      local poll = require("fidget.poll")
+      local lint = require("lint")
+
+      local poller = poll.Poller {
+          name = "Linting",
+          poll = function()
+              local linters = lint.get_running()
+              if #linters > 0 then
+                  return true
+              else
+                  pcall(callback)
+                  return false
+              end
+          end
+      }
+
+      poller:start_polling(25)
+  end
+  function try_lint(prg)
+      local callback = function()
+          vim.diagnostic.setloclist()
+      end
+      require("lint").try_lint(prg)
+      on_lint_finish(callback)
+  end
+
   local cmp = require'cmp'
 
   cmp.setup({
@@ -43,7 +62,7 @@ lua <<EOF
         else
           local key = vim.api.nvim_replace_termcodes("<c-n>", true, false, true)
           vim.api.nvim_feedkeys(key, 'n', false)
-                
+
           -- vim.cmd("normal gv=gv")
         end
       end),

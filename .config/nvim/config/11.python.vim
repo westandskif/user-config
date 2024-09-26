@@ -45,8 +45,8 @@ endfunction
 function PythonSpecifics()
   nnoremap <buffer> <localleader>lff :Neoformat black<CR>
   nnoremap <buffer> <localleader>lfi :Neoformat isort<CR>
-  nnoremap <buffer> <localleader>lmq :lua require('lint').try_lint('ruff')<CR>
-  nnoremap <buffer> <localleader>lma :lua require('lint').try_lint('pylint')<CR>
+  nnoremap <buffer> <localleader>lmq :lua try_lint('ruff')<CR>
+  nnoremap <buffer> <localleader>lma :lua try_lint('pylint')<CR>
   nnoremap <buffer> <silent> <localleader>lai :call AutoImport(expand('<cword>'))<CR>
   vnoremap <buffer> <silent> <localleader>lff :<c-u>silent exec "!black --skip-magic-trailing-comma --line-length=200 --line-ranges " . line("'<") . "-" . line("'>") . " " . expand("%")<cr>
 
