@@ -58,3 +58,12 @@ nvim-pub:
 	./scripts/nvim_py_tools
 	./scripts/generate_tags
 	./scripts/nvim_executable
+
+
+nvim-wowpip: export EXECUTABLE_NAME=nvim-wowpip
+nvim-wowpip:
+	DOCKER_RUN_OPTS="--entrypoint=python wowpip-py_api:latest" \
+		./scripts/py_from_docker
+	./scripts/nvim_py_tools
+	./scripts/generate_tags
+	./scripts/nvim_executable

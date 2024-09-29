@@ -12,7 +12,9 @@ if [ -e "$NODE_MODULES" ]; then
     rm -rf "$NODE_MODULES" || true
 fi
 
-to_path=$(mktemp -d $HELPERS_DIR/node_from_docker.XXXX)
+dir_salt=$(echo "$DOCKER_RUN_OPTS" | md5 | rev | cut -c 1-4)
+to_path="$HELPERS_DIR/node_from_docker.$dir_salt"
+mkdir -p "$to_path"
 
 docker_tmp_container=tmp_node_for_nvim
 docker rm -f "$docker_tmp_container" &>/dev/null || true

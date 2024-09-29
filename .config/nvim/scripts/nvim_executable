@@ -39,4 +39,6 @@ chmod 0777 "$EXECUTABLE"
 echo "Installing nvim plugins"
 "$EXECUTABLE" --headless +PlugInstall +PlugUpgrade +qa
 
-sudo ln -sf "$EXECUTABLE" "/usr/local/bin/$EXECUTABLE_NAME"
+if [[ ! -f "$EXECUTABLE" ]]; then
+    sudo ln -sf "$EXECUTABLE" "/usr/local/bin/$EXECUTABLE_NAME"
+fi

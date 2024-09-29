@@ -6,6 +6,8 @@ set -o errexit
 source "$(dirname $0)/base"
 echo "$DOCKER_RUN_OPTS"
 
+dir_salt=$(echo "$DOCKER_RUN_OPTS" | md5 | rev | cut -c 1-4)
+
 if [ -e "$PYTHON_VERSION" ]; then
     rm -rf "$PYTHON_VERSION" "$PYTHON_SITEPACKAGES" || true
 fi
@@ -27,8 +29,10 @@ sitepackages_paths=$(docker run \
 
 for _path in $sitepackages_paths; do
     echo "COPYING PYTHON FROM DOCKER $_path"
-    __path=$(mktemp -d $HELPERS_DIR/python_from_docker.XXXX)
-    docker cp "${docker_tmp_container}:${_path}/." "$__path"
+    __path="$HELPERS_DIR/python_from_docker.$dir_salt"
+    mkdir -p "$__path"
+    # docker cp "${docker_tmp_container}:${_path}/." "$__path"
+    sync_folder_with_docker_folder "${docker_tmp_container}:${_path}/." "$__path"
     echo $__path >>"$PYTHON_SITEPACKAGES"
 done
 docker rm -f $docker_tmp_container || true
