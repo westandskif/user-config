@@ -37,11 +37,13 @@ NODE_MODULES="$HELPERS_DIR/NODE_MODULES"
 
 
 function sync_folder_with_docker_folder {
-    EXISTING_FILES=$(mktemp)
+    FILES_BEFORE=$(mktemp)
+    FILES_AFTER=$(mktemp)
     ARCHIVE_FILES=$(mktemp)
-    find "$2" -type f > "$EXISTING_FILES"
-    extracted_files=$(docker cp -a "$1" - | tar --directory "$2" -xzf -)
-    echo "$extracted_files" | awk '{ print "./" $1 }' > "$ARCHIVE_FILES"
-    diff "$EXISTING_FILES" "$ARCHIVE_FILES" | grep '< ' | sed 's/^< //' | xargs -I {} rm '{}'
-    rm "$EXISTING_FILES" "$ARCHIVE_FILES"
+    find "$2" -type f > "$FILES_BEFORE"
+    docker cp -a "$1" - | tar --directory "$2" -xzf -
+    find "$2" -type f > "$FILES_AFTER"
+
+    diff "$FILES_BEFORE" "$FILES_AFTER" | grep '< ' | sed 's/^< //' | xargs -I {} rm '{}'
+    rm "$FILES_BEFORE" "$FILES_AFTER"
 }
