@@ -51,7 +51,7 @@ binaries=(
 $VENV_DIR/bin/python -m pip install -U --no-cache-dir "${packages[@]}"
 export_python_path='export PYTHONPATH="'"$(cat "$PYTHON_SITEPACKAGES" | paste -sd ':' -)"'"'
 for i in "${binaries[@]}"; do
-    if [[ "$i" == pylint ]] || [[ "$i" == pylsp ]]; then
+    if [[ "$i" == pylint ]] || [[ "$i" == pylsp ]] || [[ "$i" == mypy ]]; then
         _export_python_path="$export_python_path"
     else
         _export_python_path=""
