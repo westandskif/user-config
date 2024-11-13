@@ -60,10 +60,15 @@ nvim-pub:
 	./scripts/nvim_executable
 
 
-nvim-wowpip: export EXECUTABLE_NAME=nvim-wowpip
-nvim-wowpip:
-	DOCKER_RUN_OPTS="--entrypoint=python wowpip-py_api:latest" \
+nvim-p620: export EXECUTABLE_NAME=nvim-p620
+nvim-p620:
+	DOCKER_RUN_OPTS="--entrypoint=python p620-py_api:latest" \
 		./scripts/py_from_docker
-	./scripts/nvim_py_tools
-	./scripts/generate_tags
-	./scripts/nvim_executable
+	DOCKER_RUN_OPTS="--entrypoint=bash p620-js_ui:latest" \
+		DOCKER_NODE_MODULES_PATH="/app/node_modules" \
+		NODE_MODULES_OUTPUT_DIR="$$HOME/own/p620/ui/node_modules" \
+		./scripts/js_from_docker
+	# ./scripts/nvim_py_tools
+	# ./scripts/nvim_js_tools
+	# ./scripts/generate_tags
+	# ./scripts/nvim_executable

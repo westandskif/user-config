@@ -29,4 +29,6 @@ echo "COPIED NODE MODULES TO $to_path"
 docker rm -f "$docker_tmp_container" || true
 
 echo "$to_path" > "$NODE_MODULES"
-sudo ln -sf "$to_path" "$NODE_MODULES_OUTPUT_DIR"
+if [ ! -e "$NODE_MODULES_OUTPUT_DIR" ]; then
+    sudo ln -sf "$to_path" "$NODE_MODULES_OUTPUT_DIR"
+fi

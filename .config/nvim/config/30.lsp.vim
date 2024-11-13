@@ -1,5 +1,7 @@
 set completeopt=menuone,noselect
 
+" https://github.com/neovim/nvim-lspconfig/blob/master/lua/lspconfig/configs/cssls.lua
+
 lua <<EOF
   vim.diagnostic.config({
     underline = false,
@@ -35,6 +37,7 @@ lua <<EOF
 
   local cmp = require'cmp'
 
+  -- https://github.com/neovim/nvim-lspconfig/tree/master/lua/lspconfig/configs
   cmp.setup({
     completion = {
         autocomplete = false
