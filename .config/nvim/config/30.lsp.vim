@@ -178,7 +178,7 @@ lua <<EOF
 
 
   -- TS
-  nvim_lsp.tsserver.setup{
+  nvim_lsp.ts_ls.setup{
       -- cmd = {"/home/nik/work/aprenita/.githooks/bin/typescript-language-server", "--stdio"},
       cmd = {"typescript-language-server", "--stdio"},
       on_attach = on_attach,

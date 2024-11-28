@@ -36,7 +36,7 @@ packages=(
     "mypy"
 )
 binaries=(
-    "pip",
+    "pip"
     "black"
     "flake8"
     "isort"

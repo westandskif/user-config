@@ -10,11 +10,14 @@ NODE_VERSION="${NODE_VERSION:-20}"
 echo "INSTALLING NVIM JS $NODE_VERSION TOOLS"
 
 nvm which "$NODE_VERSION" || nvm install "$NODE_VERSION"
-pkgs=(
+global_pkgs=(
     "typescript-language-server"
     "typescript-formatter"
     "typescript"
     "prettier"
+)
+deps=(
+    "@ianvs/prettier-plugin-sort-imports"
 )
 binaries=(
     "typescript-language-server"
@@ -24,7 +27,8 @@ binaries=(
     "tsserver"
     "prettier"
 )
-nvm exec "$NODE_VERSION" npm install -g "${pkgs[@]}"
+nvm exec "$NODE_VERSION" npm install -g "${global_pkgs[@]}"
+nvm exec "$NODE_VERSION" npm install "${deps[@]}"
 node_bins=$(dirname $(nvm which "$NODE_VERSION"))
 
 for i in "${binaries[@]}"; do
