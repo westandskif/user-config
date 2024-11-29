@@ -3,11 +3,31 @@
 set -o nounset
 set -o errexit
 
-echo "INSTALLING SYSTEM LIBRARIES"
-brew install aspell ripgrep fd fzf bat jq bash gnu-getopt
+# echo "INSTALLING SYSTEM LIBRARIES"
+# brew install aspell ripgrep fd fzf bat jq bash gnu-getopt
+
+installed_packages=$(brew list --installed-on-request)
+system_packages=(
+    "aspell"
+    "ripgrep"
+    "fd"
+    "fzf"
+    "bat"
+    "jq"
+    "bash"
+    "gnu-getopt"
+)
+for i in "${system_packages[@]}"; do
+    if [[ "${installed_packages}" != *"${i}"* ]]; then
+        brew install "${i}"
+    fi
+
+done
 
 # installing universal ctags
-brew install --HEAD universal-ctags/universal-ctags/universal-ctags
+if [[ ! -x $(command -v ctags) ]]; then
+    brew install --HEAD universal-ctags/universal-ctags/universal-ctags
+fi
 
 if [ ! -d "$HOME/.pyenv" ]; then
     echo "INSTALLING PYENV"

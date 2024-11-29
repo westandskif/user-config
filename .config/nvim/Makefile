@@ -20,9 +20,9 @@ nvim-convtools:
 
 nvim-cp: export EXECUTABLE_NAME=nvim-cp
 nvim-cp:
-	DOCKER_RUN_OPTS="--entrypoint=python aprenita-infrastructure_backend:apple_go_manual" \
+	DOCKER_RUN_OPTS="--entrypoint=python aprenita-infrastructure_backend:master" \
 		./scripts/py_from_docker
-	DOCKER_RUN_OPTS="--entrypoint=bash aprenita-infrastructure_frontend:apple_go_manual" \
+	DOCKER_RUN_OPTS="--entrypoint=bash aprenita-infrastructure_frontend:master" \
 		DOCKER_NODE_MODULES_PATH="/node_modules" \
 		NODE_MODULES_OUTPUT_DIR="$$HOME/work/aprenita/ui/node_modules" \
 		./scripts/js_from_docker

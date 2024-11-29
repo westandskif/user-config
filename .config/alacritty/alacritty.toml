@@ -1,0 +1,68 @@
+# [colors.bright]
+# black = "#575b70"
+# blue = "#caa9fa"
+# cyan = "#9aedfe"
+# green = "#5af78e"
+# magenta = "#ff92d0"
+# red = "#ff6e67"
+# white = "#e6e6e6"
+# yellow = "#f4f99d"
+# 
+# [colors.normal]
+# black = "#000000"
+# blue = "#caa9fa"
+# cyan = "#8be9fd"
+# green = "#50fa7b"
+# magenta = "#ff79c6"
+# red = "#ff5555"
+# white = "#bfbfbf"
+# yellow = "#f1fa8c"
+
+# [colors.primary]
+# background = "#000000"
+# foreground = "#f8f8f2"
+
+[window]
+decorations = "Full"
+startup_mode = "Maximized"
+decorations_theme_variant = "Dark"
+dynamic_title = true
+
+[font]
+size = 13
+offset = { x = 1, y = 1 }
+
+[keyboard]
+bindings = [
+  {key = "Right", mods = "Command", action = "SelectNextTab"},
+  {key = "Left", mods = "Command", action = "SelectPreviousTab"},
+]
+
+[font.normal]
+family = "Menlo"
+style = "Regular"
+
+[colors.primary]
+background = "0x2D2A2E"
+foreground = "0xfff1f3"
+
+[colors.normal]
+black = "0x2c2525"
+red = "0xfd6883"
+green = "0xadda78"
+yellow = "0xf9cc6c"
+blue = "0xf38d70"
+magenta = "0xa8a9eb"
+cyan = "0x85dacc"
+white = "0xfff1f3"
+
+[colors.bright]
+black = "0x72696a"
+red = "0xfd6883"
+green = "0xadda78"
+yellow = "0xf9cc6c"
+blue = "0xf38d70"
+magenta = "0xa8a9eb"
+cyan = "0x85dacc"
+white = "0xfff1f3"
+

@@ -28,7 +28,7 @@ binaries=(
     "prettier"
 )
 nvm exec "$NODE_VERSION" npm install -g "${global_pkgs[@]}"
-nvm exec "$NODE_VERSION" npm install "${deps[@]}"
+pushd "$HELPERS_DIR" && nvm exec "$NODE_VERSION" npm install "${deps[@]}" && popd
 node_bins=$(dirname $(nvm which "$NODE_VERSION"))
 
 for i in "${binaries[@]}"; do

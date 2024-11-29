@@ -33,7 +33,7 @@ _PYTHON_SCRIPT_GET_VERSION='import sys; print(sys.version.split()[0])'
 _PYTHON_SCRIPT_GET_SITEPACKAGES_PATHS='import sys; list(map(print, (p for p in sys.path if "site-packages" in p or "src" in p)))'
 
 # NODE
-NODE_MODULES="$HELPERS_DIR/NODE_MODULES"
+NODE_MODULES="$HELPERS_DIR/NODE_MODULES_PATHS"
 
 
 function sync_folder_with_docker_folder {
