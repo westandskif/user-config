@@ -14,12 +14,17 @@ global_pkgs=(
     "typescript-language-server"
     "typescript-formatter"
     "typescript"
-    "prettier"
-)
-deps=(
-    "@ianvs/prettier-plugin-sort-imports"
+    "prettier-pnp"
 )
 binaries=(
+    "typescript-language-server"
+    "tsfmt"
+    "node"
+    "tsc"
+    "tsserver"
+    'prettier-pnp --pnp "@ianvs/prettier-plugin-sort-imports" --quiet'
+)
+exposed_binary_names=(
     "typescript-language-server"
     "tsfmt"
     "node"
@@ -28,14 +33,18 @@ binaries=(
     "prettier"
 )
 nvm exec "$NODE_VERSION" npm install -g "${global_pkgs[@]}"
-pushd "$HELPERS_DIR" && nvm exec "$NODE_VERSION" npm install "${deps[@]}" && popd
 node_bins=$(dirname $(nvm which "$NODE_VERSION"))
 
-for i in "${binaries[@]}"; do
+# https://github.com/auvred/prettier-pnp
+# node_modules/@ianvs/prettier-plugin-sort-imports/lib/src/index.js
+
+for i in "${!binaries[@]}"; do
+    _binary="${binaries[$i]}"
+    _name="${exposed_binary_names[$i]}"
     _script="#!/bin/bash
 set -o nounset
 set -o errexit
-exec $node_bins/$i \"\$@\""
-    printf "$_script" >"$EXECUTABLES_DIR_TO_EXPOSE/$i"
-    chmod 0777 "$EXECUTABLES_DIR_TO_EXPOSE/$i"
+exec $node_bins/$_binary \"\$@\""
+    printf "$_script" >"$EXECUTABLES_DIR_TO_EXPOSE/$_name"
+    chmod 0777 "$EXECUTABLES_DIR_TO_EXPOSE/$_name"
 done
