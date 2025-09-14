@@ -11,17 +11,19 @@ RUN apt update \
       net-tools \
       iproute2 \
       iptables \
-      dante-server
+      dante-server \
+      privoxy
 
 
 ADD config_NJ.ovpn /mnt/vpn/config.ovpn
 
 ADD danted.conf /etc/danted.conf
+ADD privoxy.conf /etc/privoxy/config
 ADD up.txt entrypoint.sh down.sh route-up.sh vpn-config.sh /mnt/vpn/
 RUN chmod +x /mnt/vpn/*.sh
 
 WORKDIR /mnt/vpn
 
-EXPOSE 1080
+EXPOSE 1080 3128
 
 ENTRYPOINT ["/bin/bash", "/mnt/vpn/entrypoint.sh"]
