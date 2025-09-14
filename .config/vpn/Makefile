@@ -9,7 +9,7 @@ bash:
 	docker run --rm -it --privileged --entrypoint=bash $(image_name) 
 
 run:
-	docker run --rm -it -p 1080:1080 --privileged $(image_name)
+	docker run --rm -it -p 127.0.0.1:1080:1080 --privileged $(image_name)
 
 start:
 	docker run \

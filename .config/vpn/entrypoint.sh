@@ -2,7 +2,7 @@
 
 echo "100 openvpn" >> /etc/iproute2/rt_tables
 
-openvpn --config my_expressvpn_usa_-_washington_dc_udp.ovpn --auth-user-pass up.txt &
+openvpn --config config.ovpn --auth-user-pass up.txt &
 until ip link show tun0 2>/dev/null; do sleep 1; done
 danted &
 

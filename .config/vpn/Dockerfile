@@ -13,12 +13,11 @@ RUN apt update \
       iptables \
       dante-server
 
-ADD my_expressvpn_usa_-_washington_dc_udp.ovpn \
-    up.txt \
-    /mnt/vpn
+
+ADD config_NJ.ovpn /mnt/vpn/config.ovpn
 
 ADD danted.conf /etc/danted.conf
-ADD entrypoint.sh down.sh route-up.sh vpn-config.sh /mnt/vpn/
+ADD up.txt entrypoint.sh down.sh route-up.sh vpn-config.sh /mnt/vpn/
 RUN chmod +x /mnt/vpn/*.sh
 
 WORKDIR /mnt/vpn
