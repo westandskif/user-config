@@ -1,5 +1,7 @@
 call plug#begin('~/.local/share/nvim/plugged')
 
+" BIG FILES LunarVim/bigfile.nvim
+
 " THEMES
 " https://github.com/rockerBOO/awesome-neovim#tree-sitter-supported-colorscheme
 Plug 'sainnhe/sonokai'
@@ -51,6 +53,11 @@ Plug 'hashivim/vim-terraform', {'for': 'terraform'}
 Plug 'farfanoide/inflector.vim'
 
 Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
+
+
+Plug 'nvim-lua/plenary.nvim'
+Plug 'olimorris/codecompanion.nvim'
+
 let g:Hexokinase_ftEnabled = ['less']
 let g:Hexokinase_highlighters = ['backgroundfull']
 

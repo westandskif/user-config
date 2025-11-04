@@ -17,6 +17,14 @@ nvim-convtools:
 	./scripts/generate_tags
 	./scripts/nvim_executable
 
+nvim-p262: export EXECUTABLE_NAME=nvim-p262
+nvim-p262:
+	VENV_PATH=~/.pyenv/versions/p262-py3.13 \
+		./scripts/py_from_venv
+	./scripts/nvim_py_tools
+	./scripts/generate_tags
+	./scripts/nvim_executable
+
 
 nvim-cp: export EXECUTABLE_NAME=nvim-cp
 nvim-cp:
@@ -53,7 +61,7 @@ nvim-synclane:
 
 nvim-pub: export EXECUTABLE_NAME=nvim-pub
 nvim-pub:
-	DOCKER_RUN_OPTS="--entrypoint=python publishing-backend-backend:latest" \
+	DOCKER_RUN_OPTS="--entrypoint=python publishing-backend-backend:master" \
 		./scripts/py_from_docker
 	./scripts/nvim_py_tools
 	./scripts/generate_tags
@@ -64,10 +72,10 @@ nvim-p620: export EXECUTABLE_NAME=nvim-p620
 nvim-p620:
 	DOCKER_RUN_OPTS="--entrypoint=python p620-py_api:latest" \
 		./scripts/py_from_docker
-	DOCKER_RUN_OPTS="--entrypoint=bash p620-js_ui:latest" \
-		DOCKER_NODE_MODULES_PATH="/app/node_modules" \
-		NODE_MODULES_OUTPUT_DIR="$$HOME/own/p620/ui/node_modules" \
-		./scripts/js_from_docker
+	# DOCKER_RUN_OPTS="--entrypoint=bash p620-js_ui:latest" \
+	# 	DOCKER_NODE_MODULES_PATH="/node_modules" \
+	# 	NODE_MODULES_OUTPUT_DIR="$$HOME/own/p620/ui/node_modules" \
+	#  	./scripts/js_from_docker
 	# ./scripts/nvim_py_tools
 	# ./scripts/nvim_js_tools
 	# ./scripts/generate_tags

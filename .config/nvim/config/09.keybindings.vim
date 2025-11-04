@@ -235,6 +235,7 @@ nnoremap <leader>lff :Neoformat<CR>
 nnoremap <leader>lfi :Neoformat<CR>
 
 
+
 let g:which_key_map.b = {'name': '☰ BUFFERS'}
 let g:which_key_map.b.q = 'quit all'
 nnoremap <silent> <leader>bq :Bdelete hidden<CR>

@@ -78,15 +78,11 @@ lua <<EOF
       -- { name = 'luasnip' }, -- For luasnip users.
       -- { name = 'ultisnips' }, -- For ultisnips users.
       -- { name = 'snippy' }, -- For snippy users.
-    }, {
+    },
     {
-      name = 'buffer',
-      -- option = {
-      --   get_bufnrs = function()
-      --     return vim.api.nvim_list_bufs()
-      --   end
-      -- }
-    }})
+    -- { name = 'buffer' }
+    }
+    )
   })
 
   -- Use buffer source for `/` and `?` (if you enabled `native_menu`, this won't work anymore).
@@ -109,10 +105,6 @@ lua <<EOF
   })
 
   -- Set up lspconfig.
-  local capabilities = require('cmp_nvim_lsp').default_capabilities()
-
-  local nvim_lsp = require('lspconfig')
-
   local on_init = function(client, initialization_result)
     if client.server_capabilities then
       client.server_capabilities.documentFormattingProvider = false
@@ -143,7 +135,7 @@ lua <<EOF
     -- buf_set_keymap('n', '<space>wr', '<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>', opts)
     -- buf_set_keymap('n', '<space>wl', '<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>', opts)
     -- buf_set_keymap('n', '<space>D', '<cmd>lua vim.lsp.buf.type_definition()<CR>', opts)
-    -- buf_set_keymap('n', '<space>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
+    buf_set_keymap('n', '<space>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
     -- buf_set_keymap('n', '<space>ca', '<cmd>lua vim.lsp.buf.code_action()<CR>', opts)
     -- buf_set_keymap('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>', opts)
     -- buf_set_keymap('n', '[d', '<cmd>lua vim.lsp.diagnostic.goto_prev()<CR>', opts)
@@ -152,7 +144,7 @@ lua <<EOF
 
   -- PYTHON
   -- available settings at https://github.com/python-lsp/python-lsp-server/blob/develop/pylsp/config/schema.json
-  nvim_lsp.pylsp.setup{
+  vim.lsp.config('pylsp', {
       on_init = on_init,
       on_attach = on_attach,
       settings = {
@@ -166,28 +158,32 @@ lua <<EOF
               }
           }
       }
-  }
+  })
+  vim.lsp.enable('pylsp')
 
   -- RUST
-  local capabilities = vim.lsp.protocol.make_client_capabilities()
+  local capabilities = require('cmp_nvim_lsp').default_capabilities()
   capabilities.textDocument.completion.completionItem.snippetSupport = true
-  nvim_lsp.rust_analyzer.setup{
+  vim.lsp.config('rust_analyzer', {
       on_attach = on_attach,
       capabilities = capabilities,
-  }
-
+  })
+  vim.lsp.enable('rust_analyzer')
 
   -- TS
-  nvim_lsp.ts_ls.setup{
+  vim.lsp.config('ts_ls', {
       -- cmd = {"/home/nik/work/aprenita/.githooks/bin/typescript-language-server", "--stdio"},
       cmd = {"typescript-language-server", "--stdio"},
       on_attach = on_attach,
-  }
+  })
+  vim.lsp.enable('ts_ls')
 
   -- C
-  nvim_lsp.ccls.setup{
+  local capabilities = require('cmp_nvim_lsp').default_capabilities()
+  vim.lsp.config('ccls', {
       on_attach = on_attach,
       capabilities = capabilities,
-  }
+  })
+  vim.lsp.enable('ccls')
 
 EOF
