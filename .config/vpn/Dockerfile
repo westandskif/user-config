@@ -14,8 +14,14 @@ RUN apt update \
       dante-server \
       privoxy
 
-
-ADD config_NJ.ovpn /mnt/vpn/config.ovpn
+# expects *.ovpn file to be at /mnt/vpn/config.ovpn
+# *.ovpn file should contain the below:
+# >>> script-security 2
+# >>> route-noexec
+# >>> route-up /mnt/vpn/route-up.sh
+# >>> down /mnt/vpn/down.sh
+# >>> mute-replay-warnings
+# ADD config_NJ.ovpn /mnt/vpn/config.ovpn
 
 ADD danted.conf /etc/danted.conf
 ADD privoxy.conf /etc/privoxy/config
