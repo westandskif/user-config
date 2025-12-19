@@ -1,9 +1,9 @@
 function FrontendSpecifics()
   nnoremap <buffer> <localleader>lff :Neoformat prettier<CR>
 endfunction
-autocmd FileType html,javascript,typescriptreact,less :call FrontendSpecifics()
+autocmd FileType html,javascript,less :call FrontendSpecifics()
 
 function TsSpecifics()
-  nnoremap <buffer> <localleader>lff :Neoformat tsfmt<CR>
+  nnoremap <buffer> <localleader>lff :Neoformat deno<CR>
 endfunction
-autocmd FileType typescript :call TsSpecifics()
+autocmd FileType typescript,typescriptreact :call TsSpecifics()

@@ -171,12 +171,14 @@ lua <<EOF
   vim.lsp.enable('rust_analyzer')
 
   -- TS
-  vim.lsp.config('ts_ls', {
-      -- cmd = {"/home/nik/work/aprenita/.githooks/bin/typescript-language-server", "--stdio"},
-      cmd = {"typescript-language-server", "--stdio"},
-      on_attach = on_attach,
-  })
-  vim.lsp.enable('ts_ls')
+  -- vim.lsp.config('ts_ls', {
+  --     -- cmd = {"/home/nik/work/aprenita/.githooks/bin/typescript-language-server", "--stdio"},
+  --     cmd = {"typescript-language-server", "--stdio"},
+  --     on_attach = on_attach,
+  -- })
+  -- vim.lsp.enable('ts_ls')
+
+  vim.lsp.enable({ "denols" })
 
   -- C
   local capabilities = require('cmp_nvim_lsp').default_capabilities()

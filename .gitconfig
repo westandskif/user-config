@@ -1,0 +1,39 @@
+[pull]
+	rebase = false
+
+[url "git@bitbucket_getbraavo:skovalenko"]
+    insteadOf = git@bitbucket.org:skovalenko
+
+[url "git@bitbucket_getbraavo:nikita_almakov"]
+    insteadOf = git@bitbucket.org:nikita_almakov
+
+[url "git@github_westandskif:westandskif"]
+    insteadOf = git@github.com:westandskif
+
+[url "git@github_westandskif:os-car-man"]
+    insteadOf = git@github.com:os-car-man
+
+[url "git@github_westandskif:p620"]
+    insteadOf = git@github.com:p620
+
+[user]
+	name = Nikita Almakov
+	email = nikita.almakov@gmail.com
+	signingkey = D438B42B1FB7989EE730D2A4C9260F04A7526E27
+[core]
+	editor = nvim
+	pager = delta
+[alias]
+	logv = log --pretty=oneline
+[push]
+	default = current
+
+# [pager]
+# branch = false
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+	line-numbers = true
+	side-by-side = false
+	keep-plus-minus-markers = true

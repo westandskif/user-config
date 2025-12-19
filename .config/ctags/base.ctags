@@ -1,1 +1,2 @@
 --exclude=.git
+--languages=python,rust,typescript,javascript
