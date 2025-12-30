@@ -61,7 +61,7 @@ nvim-synclane:
 
 nvim-pub: export EXECUTABLE_NAME=nvim-pub
 nvim-pub:
-	DOCKER_RUN_OPTS="--entrypoint=python publishing-backend-backend:master" \
+	DOCKER_RUN_OPTS="--entrypoint=python publishing-backend-backend:ccf" \
 		./scripts/py_from_docker
 	./scripts/nvim_py_tools
 	./scripts/generate_tags

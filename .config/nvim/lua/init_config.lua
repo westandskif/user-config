@@ -1,3 +1,15 @@
+-- Spelling settings
+vim.opt.spell = true
+vim.opt.spelllang = "en_us"
+vim.opt.spelloptions = "camel"
+vim.opt.spellcapcheck = ""
+-- :syn match myExCapitalWords +\\<[A-Z]\\w*\\>+ contains=@NoSpell
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "*",
+  command = "syntax spell toplevel",
+})
+vim.opt.spellfile = vim.fn.stdpath("config") .. "/spell/en.utf-8.add"
+
 -- Tweak highlights
 local function tweak_highlights()
   vim.api.nvim_set_hl(0, "SpellBad", { underline = true })
@@ -35,7 +47,7 @@ vim.opt.splitbelow = true
 vim.opt.signcolumn = "yes:1"
 vim.opt.encoding = "utf-8"
 vim.opt.laststatus = 2
-vim.cmd("syntax on")
+-- vim.cmd("syntax on")
 vim.opt.pumheight = 20
 vim.opt.redrawtime = 2000
 vim.opt.clipboard = "unnamedplus"

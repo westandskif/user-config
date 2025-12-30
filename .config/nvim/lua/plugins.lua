@@ -32,7 +32,10 @@ require("lazy").setup({
   { "junegunn/gv.vim" },
 
   -- Statusline
-  { "itchyny/lightline.vim" },
+  {
+    "nvim-lualine/lualine.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+  },
 
   -- Treesitter
   {
@@ -60,7 +63,27 @@ require("lazy").setup({
 
   -- Linting and formatting
   { "mfussenegger/nvim-lint" },
-  { "sbdchd/neoformat" },
+  {
+    "stevearc/conform.nvim",
+    config = function()
+      require("conform").setup({
+        formatters_by_ft = {
+          python = { "black" },
+          hcl = { "hclfmt" },
+          javascript = { "deno_fmt" },
+          typescript = { "deno_fmt" },
+          typescriptreact = { "deno_fmt" },
+        },
+
+        formatters = {
+          hclfmt = {
+            command = "hclfmt",
+            stdin = true,
+          },
+        },
+      })
+    end,
+  },
 
   -- LSP and completion
   { "neovim/nvim-lspconfig" },
@@ -77,7 +100,12 @@ require("lazy").setup({
   { "hashivim/vim-terraform", ft = "terraform" },
 
   -- Text manipulation
-  { "farfanoide/inflector.vim" },
+  {
+    "farfanoide/inflector.vim",
+    init = function()
+      vim.g.inflector_mapping = "gI"
+    end,
+  },
 
   -- Color preview
   {
@@ -88,10 +116,4 @@ require("lazy").setup({
       vim.g.Hexokinase_highlighters = { "backgroundfull" }
     end,
   },
-
-  -- Utilities
-  { "nvim-lua/plenary.nvim" },
-
-  -- AI
-  { "olimorris/codecompanion.nvim" },
 })
