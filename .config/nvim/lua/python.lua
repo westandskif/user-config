@@ -74,13 +74,13 @@ function M.setup()
             -- Quick lint with ruff
             vim.keymap.set('n', '<localleader>lmq', function()
                 vim.diagnostic.reset()
-                vim.fn.try_lint('ruff')
+                require('lint').try_lint('ruff')
             end, opts)
 
             -- Lint with mypy
             vim.keymap.set('n', '<localleader>lma', function()
                 vim.diagnostic.reset()
-                vim.fn.try_lint('mypy')
+                require('lint').try_lint('mypy')
             end, opts)
 
             -- Auto import

@@ -43,5 +43,3 @@ fi
 
 bash
 # curl ipinfo.io
-#
-# https://github.com/openai/codex/releases/latest/download/codex-aarch64-unknown-linux-musl.tar.gz 
