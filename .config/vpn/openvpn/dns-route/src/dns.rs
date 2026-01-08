@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
@@ -24,6 +25,14 @@ struct PendingResult {
     response: Vec<u8>,
     ips: Vec<IpAddr>,
     matched: bool,
+}
+
+/// Action to take for query coalescing
+enum QueryAction {
+    /// Wait on existing in-flight query
+    Wait(broadcast::Receiver<PendingResult>),
+    /// Execute the query ourselves (we're the owner)
+    Execute(broadcast::Sender<PendingResult>),
 }
 
 pub struct DnsServer {
@@ -128,111 +137,109 @@ impl DnsServer {
             return Ok(());
         }
 
-        // Check if there's already an in-flight query for this domain
-        {
-            let pending = self.pending_queries.lock().await;
-            if let Some(tx) = pending.get(&cache_key) {
-                // Subscribe to existing in-flight query
-                let mut rx = tx.subscribe();
-                drop(pending); // Release lock while waiting
+        // Atomic check-and-insert for in-flight query coalescing
+        loop {
+            let action = {
+                let mut pending = self.pending_queries.lock().await;
+                match pending.entry(cache_key.clone()) {
+                    Entry::Occupied(e) => QueryAction::Wait(e.get().subscribe()),
+                    Entry::Vacant(e) => {
+                        let (tx, _) = broadcast::channel(16);
+                        e.insert(tx.clone());
+                        QueryAction::Execute(tx)
+                    }
+                }
+            };
 
-                match rx.recv().await {
-                    Ok(result) => {
-                        // Use result from the other request
-                        let mut response = result.response;
-                        // Copy transaction ID from our query
-                        if response.len() >= 2 && query.len() >= 2 {
-                            response[0] = query[0];
-                            response[1] = query[1];
+            match action {
+                QueryAction::Wait(mut rx) => {
+                    match rx.recv().await {
+                        Ok(result) => {
+                            // Use result from the other request
+                            let mut response = result.response;
+                            if response.len() >= 2 && query.len() >= 2 {
+                                response[0] = query[0];
+                                response[1] = query[1];
+                            }
+                            if result.matched {
+                                join_all(
+                                    result.ips.iter().map(|ip| self.route_manager.add_route(*ip)),
+                                )
+                                .await;
+                            }
+                            let total_time = start.elapsed();
+                            info!(
+                                "{} (coalesced, {}) | total: {:.1}ms",
+                                domain,
+                                if result.matched { "matched" } else { "pass" },
+                                total_time.as_secs_f64() * 1000.0
+                            );
+                            socket.send_to(&response, client_addr).await?;
+                            return Ok(());
                         }
-                        // Add routes if matched (before response)
-                        if result.matched {
-                            join_all(
-                                result.ips.iter().map(|ip| self.route_manager.add_route(*ip)),
-                            )
-                            .await;
+                        Err(_) => {
+                            // Owner dropped without sending - retry the loop
+                            continue;
                         }
-                        let total_time = start.elapsed();
-                        info!(
-                            "{} (coalesced, {}) | total: {:.1}ms",
-                            domain,
-                            if result.matched { "matched" } else { "pass" },
-                            total_time.as_secs_f64() * 1000.0
-                        );
-                        socket.send_to(&response, client_addr).await?;
-                        return Ok(());
                     }
-                    Err(_) => {
-                        // Sender dropped (query failed), fall through to do our own query
+                }
+                QueryAction::Execute(tx) => {
+                    // We're the owner - do the upstream query
+                    let result = self.do_upstream_query(&query, &domain, &cache_key).await;
+
+                    // Remove from pending
+                    self.pending_queries.lock().await.remove(&cache_key);
+
+                    match result {
+                        Ok((response, ips, matched, upstream_server, upstream_time)) => {
+                            // Broadcast to waiters
+                            let _ = tx.send(PendingResult {
+                                response: response.clone(),
+                                ips: ips.clone(),
+                                matched,
+                            });
+
+                            if matched {
+                                join_all(ips.iter().map(|ip| self.route_manager.add_route(*ip)))
+                                    .await;
+                                let total_time = start.elapsed();
+                                info!(
+                                    "{} -> {} IPs (matched, routed) | upstream: {} in {:.1}ms | total: {:.1}ms",
+                                    domain,
+                                    ips.len(),
+                                    upstream_server,
+                                    upstream_time.as_secs_f64() * 1000.0,
+                                    total_time.as_secs_f64() * 1000.0
+                                );
+                            } else {
+                                let total_time = start.elapsed();
+                                debug!(
+                                    "{} | upstream: {} in {:.1}ms | total: {:.1}ms",
+                                    domain,
+                                    upstream_server,
+                                    upstream_time.as_secs_f64() * 1000.0,
+                                    total_time.as_secs_f64() * 1000.0
+                                );
+                            }
+
+                            let mut final_response = response;
+                            if final_response.len() >= 2 && query.len() >= 2 {
+                                final_response[0] = query[0];
+                                final_response[1] = query[1];
+                            }
+                            socket.send_to(&final_response, client_addr).await?;
+                        }
+                        Err(e) => {
+                            error!("Failed to forward query for {}: {}", domain, e);
+                            if let Some(servfail) = build_servfail_response(&query) {
+                                socket.send_to(&servfail, client_addr).await?;
+                            }
+                        }
                     }
+                    return Ok(());
                 }
             }
         }
-
-        // We're the first (or previous query failed) - create broadcast channel and register
-        let tx = {
-            let mut pending = self.pending_queries.lock().await;
-            let (tx, _) = broadcast::channel(16);
-            pending.insert(cache_key.clone(), tx.clone());
-            tx
-        };
-
-        // Do the actual upstream query (sequential server fallback preserved)
-        let result = self.do_upstream_query(&query, &domain, &cache_key).await;
-
-        // Remove from pending and broadcast result
-        self.pending_queries.lock().await.remove(&cache_key);
-
-        match result {
-            Ok((response, ips, matched, upstream_server, upstream_time)) => {
-                // Broadcast to waiters
-                let _ = tx.send(PendingResult {
-                    response: response.clone(),
-                    ips: ips.clone(),
-                    matched,
-                });
-
-                // Add routes if matched (before response)
-                if matched {
-                    join_all(ips.iter().map(|ip| self.route_manager.add_route(*ip))).await;
-                    let total_time = start.elapsed();
-                    info!(
-                        "{} -> {:?} (matched, routed) | upstream: {} in {:.1}ms | total: {:.1}ms",
-                        domain,
-                        ips,
-                        upstream_server,
-                        upstream_time.as_secs_f64() * 1000.0,
-                        total_time.as_secs_f64() * 1000.0
-                    );
-                } else {
-                    let total_time = start.elapsed();
-                    debug!(
-                        "{} | upstream: {} in {:.1}ms | total: {:.1}ms",
-                        domain,
-                        upstream_server,
-                        upstream_time.as_secs_f64() * 1000.0,
-                        total_time.as_secs_f64() * 1000.0
-                    );
-                }
-
-                // Respond - copy transaction ID
-                let mut final_response = response;
-                if final_response.len() >= 2 && query.len() >= 2 {
-                    final_response[0] = query[0];
-                    final_response[1] = query[1];
-                }
-                socket.send_to(&final_response, client_addr).await?;
-            }
-            Err(e) => {
-                error!("Failed to forward query for {}: {}", domain, e);
-                // Send SERVFAIL so client doesn't retry forever
-                if let Some(servfail) = build_servfail_response(&query) {
-                    socket.send_to(&servfail, client_addr).await?;
-                }
-            }
-        }
-
-        Ok(())
     }
 
     /// Forward a query as pass-through when domain parsing fails.
@@ -339,17 +346,8 @@ fn parse_qtype_from_query(packet: &[u8]) -> Option<u16> {
         return None;
     }
 
-    let mut pos = 12;
-
-    // Skip the domain name
-    while pos < packet.len() {
-        let len = packet[pos] as usize;
-        if len == 0 {
-            pos += 1;
-            break;
-        }
-        pos += 1 + len;
-    }
+    // Skip the domain name (handles compression)
+    let pos = skip_dns_name(packet, 12)?;
 
     // Read QTYPE (2 bytes after domain)
     if pos + 2 <= packet.len() {
@@ -523,36 +521,77 @@ fn parse_ttl_from_response(packet: &[u8]) -> Option<TtlInfo> {
     None
 }
 
+/// Decompress a DNS name starting at the given position.
+/// Returns (domain_string, bytes_consumed_at_start_position) or None on error.
+/// Handles both uncompressed labels and compression pointers per RFC 1035.
+fn decompress_dns_name(packet: &[u8], start: usize) -> Option<(String, usize)> {
+    let mut labels = Vec::new();
+    let mut pos = start;
+    let mut bytes_consumed = 0;
+    let mut followed_pointer = false;
+    let mut pointer_depth = 0;
+    const MAX_POINTER_DEPTH: u8 = 10;
+
+    while pos < packet.len() {
+        let b = packet[pos];
+
+        if b == 0 {
+            // Null terminator - end of name
+            if !followed_pointer {
+                bytes_consumed += 1;
+            }
+            break;
+        } else if b & 0xC0 == 0xC0 {
+            // Compression pointer (2 bytes)
+            if pos + 1 >= packet.len() {
+                return None;
+            }
+            if !followed_pointer {
+                bytes_consumed += 2;
+                followed_pointer = true;
+            }
+            pointer_depth += 1;
+            if pointer_depth > MAX_POINTER_DEPTH {
+                return None; // Prevent infinite loops
+            }
+            // Extract 14-bit offset
+            let offset = (((b & 0x3F) as usize) << 8) | (packet[pos + 1] as usize);
+            if offset >= packet.len() {
+                return None; // Invalid pointer target
+            }
+            pos = offset;
+        } else if b & 0xC0 == 0 {
+            // Label: length byte (0x01-0x3F) followed by label bytes
+            let len = b as usize;
+            if pos + 1 + len > packet.len() {
+                return None;
+            }
+            let label = std::str::from_utf8(&packet[pos + 1..pos + 1 + len]).ok()?;
+            labels.push(label.to_string());
+            if !followed_pointer {
+                bytes_consumed += 1 + len;
+            }
+            pos += 1 + len;
+        } else {
+            // Reserved (0x40-0xBF) - invalid
+            return None;
+        }
+    }
+
+    if labels.is_empty() {
+        None
+    } else {
+        Some((labels.join("."), bytes_consumed))
+    }
+}
+
 /// Parse domain name from DNS query packet.
+/// Handles both uncompressed labels and compression pointers.
 fn parse_domain_from_query(packet: &[u8]) -> Option<String> {
     if packet.len() < 12 {
         return None;
     }
-
-    let mut pos = 12;
-    let mut domain_parts = Vec::new();
-
-    while pos < packet.len() {
-        let len = packet[pos] as usize;
-        if len == 0 {
-            break;
-        }
-
-        pos += 1;
-        if pos + len > packet.len() {
-            return None;
-        }
-
-        let part = std::str::from_utf8(&packet[pos..pos + len]).ok()?;
-        domain_parts.push(part.to_string());
-        pos += len;
-    }
-
-    if domain_parts.is_empty() {
-        None
-    } else {
-        Some(domain_parts.join("."))
-    }
+    decompress_dns_name(packet, 12).map(|(domain, _)| domain)
 }
 
 /// Build a SERVFAIL response from a query (raw DNS packet manipulation).
@@ -884,5 +923,134 @@ mod tests {
         // Packet too short to have flags
         let response = [0x00, 0x01];
         assert!(!is_truncated(&response));
+    }
+
+    #[test]
+    fn test_decompress_dns_name_uncompressed() {
+        // "example.com" starting at offset 0
+        let packet = [
+            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+            0x03, b'c', b'o', b'm',
+            0x00, // Null terminator
+        ];
+        let result = decompress_dns_name(&packet, 0);
+        assert_eq!(result, Some(("example.com".to_string(), 13)));
+    }
+
+    #[test]
+    fn test_decompress_dns_name_with_pointer() {
+        // Packet where name at offset 20 points back to "example.com" at offset 0
+        #[rustfmt::skip]
+        let packet = [
+            // Offset 0-12: "example.com"
+            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+            0x03, b'c', b'o', b'm',
+            0x00,
+            // Offset 13-19: padding
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            // Offset 20-21: compression pointer to offset 0
+            0xC0, 0x00,
+        ];
+        let result = decompress_dns_name(&packet, 20);
+        assert_eq!(result, Some(("example.com".to_string(), 2)));
+    }
+
+    #[test]
+    fn test_decompress_dns_name_labels_then_pointer() {
+        // "sub" followed by pointer to "example.com" -> "sub.example.com"
+        #[rustfmt::skip]
+        let packet = [
+            // Offset 0-12: "example.com"
+            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+            0x03, b'c', b'o', b'm',
+            0x00,
+            // Offset 13-17: "sub" + pointer to offset 0
+            0x03, b's', b'u', b'b',
+            0xC0, 0x00,
+        ];
+        let result = decompress_dns_name(&packet, 13);
+        assert_eq!(result, Some(("sub.example.com".to_string(), 6)));
+    }
+
+    #[test]
+    fn test_decompress_dns_name_chained_pointers() {
+        // Pointer chain: offset 20 -> offset 13 -> offset 0
+        #[rustfmt::skip]
+        let packet = [
+            // Offset 0-12: "example.com"
+            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+            0x03, b'c', b'o', b'm',
+            0x00,
+            // Offset 13-17: "sub" + pointer to offset 0
+            0x03, b's', b'u', b'b',
+            0xC0, 0x00,
+            // Offset 19: padding
+            0x00,
+            // Offset 20-21: pointer to offset 13
+            0xC0, 0x0D,
+        ];
+        let result = decompress_dns_name(&packet, 20);
+        assert_eq!(result, Some(("sub.example.com".to_string(), 2)));
+    }
+
+    #[test]
+    fn test_decompress_dns_name_invalid_pointer() {
+        // Pointer pointing beyond packet
+        let packet = [0xC0, 0xFF];
+        assert_eq!(decompress_dns_name(&packet, 0), None);
+    }
+
+    #[test]
+    fn test_parse_domain_from_query_compressed() {
+        // DNS query with compressed QNAME pointing to offset 20 where "example.com" is stored
+        #[rustfmt::skip]
+        let query = [
+            // Header (12 bytes)
+            0x00, 0x01, // Transaction ID
+            0x01, 0x00, // Flags: standard query
+            0x00, 0x01, // QDCOUNT: 1
+            0x00, 0x00, // ANCOUNT: 0
+            0x00, 0x00, // NSCOUNT: 0
+            0x00, 0x00, // ARCOUNT: 0
+            // Question section: compression pointer to offset 20
+            0xC0, 0x14, // Pointer to offset 20 (0x14 = 20)
+            0x00, 0x01, // QTYPE: A
+            0x00, 0x01, // QCLASS: IN
+            // Offset 18-19: padding to align
+            0x00, 0x00,
+            // Offset 20-32: "example.com"
+            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+            0x03, b'c', b'o', b'm',
+            0x00,
+        ];
+        let domain = parse_domain_from_query(&query);
+        assert_eq!(domain, Some("example.com".to_string()));
+    }
+
+    #[test]
+    fn test_parse_qtype_from_query_compressed() {
+        // DNS query with compressed QNAME
+        #[rustfmt::skip]
+        let query = [
+            // Header (12 bytes)
+            0x00, 0x01, // Transaction ID
+            0x01, 0x00, // Flags
+            0x00, 0x01, // QDCOUNT: 1
+            0x00, 0x00, // ANCOUNT: 0
+            0x00, 0x00, // NSCOUNT: 0
+            0x00, 0x00, // ARCOUNT: 0
+            // Question section: compression pointer
+            0xC0, 0x14, // Pointer to offset 20
+            0x00, 0x1C, // QTYPE: AAAA (28 = 0x1C)
+            0x00, 0x01, // QCLASS: IN
+            // Padding
+            0x00, 0x00,
+            // Offset 20: "example.com"
+            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+            0x03, b'c', b'o', b'm',
+            0x00,
+        ];
+        let qtype = parse_qtype_from_query(&query);
+        assert_eq!(qtype, Some(28)); // AAAA
     }
 }
