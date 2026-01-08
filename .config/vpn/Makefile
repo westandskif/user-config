@@ -14,20 +14,14 @@ build:
 bash:
 	docker run --rm -it --privileged --entrypoint=bash $(IMAGE_NAME) 
 
-run:
-	docker run --rm -it \
-		-p 127.0.0.1:1080:1080 \
-		-p 127.0.0.1:3128:3128 \
-		--privileged $(IMAGE_NAME)
-
-start:
+start: build
 	docker run \
 		--name $(CONTAINER_NAME) \
 		-d \
 		--network $(NETWORK_NAME) \
 		-p 127.0.0.1:1080:1080 \
 		-p 127.0.0.1:3128:3128 \
-		-v $(CURRENT_DIR)/config_WA.ovpn:/mnt/vpn/config.ovpn \
+		-v $(CURRENT_DIR)/openvpn_WA_0.ovpn:/mnt/vpn/config.ovpn \
 		--restart unless-stopped \
 		--privileged \
 		$(IMAGE_NAME)

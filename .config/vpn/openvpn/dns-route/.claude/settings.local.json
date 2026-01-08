@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__rust-analyzer__definition",
+      "mcp__rust-analyzer__references",
+      "Bash(cargo check:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo test:*)"
+    ]
+  }
+}
