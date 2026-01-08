@@ -143,13 +143,17 @@ impl RouteManager {
                 for route in routes {
                     if let Ok(ip) = route.ip.parse::<IpAddr>() {
                         if self.delete_system_route(ip).await {
+                            // Only delete from DB on success
+                            if let Err(e) = self.store.delete_route(&route.ip).await {
+                                warn!("Failed to delete route from store: {}", e);
+                            }
                             info!("Cleaned up route for {}", ip);
+                        } else {
+                            warn!("Failed to delete OS route for {}, keeping in DB for retry", ip);
                         }
                     }
                 }
-                if let Err(e) = self.store.clear_run_routes(&self.run_id).await {
-                    warn!("Failed to clear routes from store: {}", e);
-                }
+                // Always mark run as ended - failed routes stay in DB for cleanup_orphans
                 if let Err(e) = self.store.record_run_end(&self.run_id).await {
                     warn!("Failed to record run end: {}", e);
                 }
@@ -171,11 +175,19 @@ impl RouteManager {
                 for route in orphans {
                     if let Ok(ip) = route.ip.parse::<IpAddr>() {
                         if self.delete_system_route(ip).await {
+                            // Only delete from DB on success
+                            if let Err(e) = self.store.delete_route(&route.ip).await {
+                                warn!("Failed to delete orphan route from store: {}", e);
+                            }
                             info!("Cleaned up orphan route for {}", ip);
+                        } else {
+                            warn!("Failed to delete orphan OS route for {}, will retry next startup", ip);
                         }
-                    }
-                    if let Err(e) = self.store.delete_route(&route.ip).await {
-                        warn!("Failed to delete orphan route from store: {}", e);
+                    } else {
+                        // Invalid IP in DB - delete the record
+                        if let Err(e) = self.store.delete_route(&route.ip).await {
+                            warn!("Failed to delete invalid orphan route from store: {}", e);
+                        }
                     }
                 }
             }

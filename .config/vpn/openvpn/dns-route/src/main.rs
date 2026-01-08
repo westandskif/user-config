@@ -4,6 +4,7 @@ mod matcher;
 mod resolver;
 mod route_store;
 mod routes;
+mod upstream;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -52,7 +53,7 @@ struct Args {
     runtime_dir: PathBuf,
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -112,14 +113,14 @@ async fn main() -> Result<()> {
     let dns_cache = Arc::new(cache::DnsCache::new(300));
     dns_cache.start_cleanup_task();
 
-    let server = dns::DnsServer::new(
+    let server = Arc::new(dns::DnsServer::new(
         args.listen,
         non_matched_dns_servers,
         matched_dns_servers,
         patterns,
         route_manager.clone(),
         dns_cache,
-    );
+    ));
 
     info!("Starting DNS server on {}", args.listen);
 

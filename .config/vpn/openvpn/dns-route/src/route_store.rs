@@ -89,11 +89,10 @@ impl RouteStore {
         let current_run_id = current_run_id.to_string();
         self.conn
             .call(move |conn| -> Result<Vec<StoredRoute>, rusqlite::Error> {
+                // Find routes from any run that isn't the current one
+                // This catches both crashed runs and runs that ended with deletion failures
                 let mut stmt = conn.prepare(
-                    "SELECT r.ip, r.family, r.gateway
-                     FROM routes r
-                     JOIN runs ru ON r.run_id = ru.run_id
-                     WHERE ru.ended_at IS NULL AND r.run_id != ?1",
+                    "SELECT ip, family, gateway FROM routes WHERE run_id != ?1",
                 )?;
 
                 let mut rows = stmt.query(params![current_run_id])?;
@@ -216,17 +215,6 @@ impl RouteStore {
             })
             .await
             .context("Failed to delete route")
-    }
-
-    pub async fn clear_run_routes(&self, run_id: &str) -> Result<()> {
-        let run_id = run_id.to_string();
-        self.conn
-            .call(move |conn| -> Result<(), rusqlite::Error> {
-                conn.execute("DELETE FROM routes WHERE run_id = ?1", params![run_id])?;
-                Ok(())
-            })
-            .await
-            .context("Failed to clear run routes")
     }
 }
 

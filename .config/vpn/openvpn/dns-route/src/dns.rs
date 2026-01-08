@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -5,16 +6,25 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use futures::future::join_all;
 use tokio::net::UdpSocket;
-use tokio::time::timeout;
+use tokio::sync::{broadcast, Mutex};
 use tracing::{debug, error, info, warn};
 
 use crate::cache::DnsCache;
 use crate::matcher::Patterns;
 use crate::routes::RouteManager;
+use crate::upstream::UpstreamSocketManager;
 
 const DNS_PORT: u16 = 53;
 const MAX_PACKET_SIZE: usize = 4096;
 const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Result broadcast to concurrent requests for the same domain
+#[derive(Clone)]
+struct PendingResult {
+    response: Vec<u8>,
+    ips: Vec<IpAddr>,
+    matched: bool,
+}
 
 pub struct DnsServer {
     listen_addr: SocketAddr,
@@ -23,6 +33,10 @@ pub struct DnsServer {
     patterns: Patterns,
     route_manager: Arc<RouteManager>,
     cache: Arc<DnsCache>,
+    /// In-flight queries: cache_key -> broadcast channel for result
+    pending_queries: Mutex<HashMap<String, broadcast::Sender<PendingResult>>>,
+    /// Persistent sockets to upstream DNS servers
+    upstream: Arc<UpstreamSocketManager>,
 }
 
 impl DnsServer {
@@ -41,108 +55,208 @@ impl DnsServer {
             patterns,
             route_manager,
             cache,
+            pending_queries: Mutex::new(HashMap::new()),
+            upstream: Arc::new(UpstreamSocketManager::new()),
         }
     }
 
-    pub async fn run(&self) -> Result<()> {
-        let socket = UdpSocket::bind(self.listen_addr).await?;
+    pub async fn run(self: Arc<Self>) -> Result<()> {
+        let socket = Arc::new(UdpSocket::bind(self.listen_addr).await?);
         info!("DNS server listening on {}", self.listen_addr);
 
-        let mut buf = [0u8; MAX_PACKET_SIZE];
-
         loop {
+            let mut buf = [0u8; MAX_PACKET_SIZE];
             let (len, client_addr) = socket.recv_from(&mut buf).await?;
-            let start = Instant::now();
             let query = buf[..len].to_vec();
 
-            let domain = match parse_domain_from_query(&query) {
-                Some(d) => d,
-                None => {
-                    warn!("Failed to parse DNS query from {}", client_addr);
-                    continue;
-                }
-            };
+            let socket = socket.clone();
+            let server = self.clone();
 
-            let qtype = parse_qtype_from_query(&query).unwrap_or(0);
-            let cache_key = format!("{}:{}", domain, qtype);
+            tokio::spawn(async move {
+                if let Err(e) = server.handle_request(query, client_addr, &socket).await {
+                    error!("Request handler error for {}: {}", client_addr, e);
+                }
+            });
+        }
+    }
 
-            // Check cache first
-            if let Some((mut cached_response, cached_ips, was_matched)) = self.cache.get(&cache_key).await {
-                // Copy transaction ID from query to cached response
-                if cached_response.len() >= 2 && query.len() >= 2 {
-                    cached_response[0] = query[0];
-                    cached_response[1] = query[1];
-                }
-                // Refresh routes for matched entries
-                if was_matched {
-                    join_all(cached_ips.iter().map(|ip| self.route_manager.add_route(*ip))).await;
-                }
-                let total_time = start.elapsed();
-                info!(
-                    "{} (cached, {}) | total: {:.1}ms",
-                    domain,
-                    if was_matched { "matched" } else { "pass" },
-                    total_time.as_secs_f64() * 1000.0
-                );
-                if let Err(e) = socket.send_to(&cached_response, client_addr).await {
-                    error!("Failed to send cached response to {}: {}", client_addr, e);
-                }
-                continue;
+    async fn handle_request(
+        &self,
+        query: Vec<u8>,
+        client_addr: SocketAddr,
+        socket: &UdpSocket,
+    ) -> Result<()> {
+        let start = Instant::now();
+
+        let domain = match parse_domain_from_query(&query) {
+            Some(d) => d,
+            None => {
+                warn!("Failed to parse DNS query from {}", client_addr);
+                return Ok(());
             }
+        };
 
-            let matched = self.patterns.matches(&domain);
+        let qtype = parse_qtype_from_query(&query).unwrap_or(0);
+        let cache_key = format!("{}:{}", domain, qtype);
 
-            // Choose DNS servers based on match
-            let servers = if matched && !self.matched_dns.is_empty() {
-                &self.matched_dns
-            } else {
-                &self.non_matched_dns
-            };
+        // Check cache first
+        if let Some((mut cached_response, cached_ips, was_matched)) =
+            self.cache.get(&cache_key).await
+        {
+            // Copy transaction ID from query to cached response
+            if cached_response.len() >= 2 && query.len() >= 2 {
+                cached_response[0] = query[0];
+                cached_response[1] = query[1];
+            }
+            // Refresh routes for matched entries
+            if was_matched {
+                join_all(cached_ips.iter().map(|ip| self.route_manager.add_route(*ip))).await;
+            }
+            let total_time = start.elapsed();
+            info!(
+                "{} (cached, {}) | total: {:.1}ms",
+                domain,
+                if was_matched { "matched" } else { "pass" },
+                total_time.as_secs_f64() * 1000.0
+            );
+            if let Err(e) = socket.send_to(&cached_response, client_addr).await {
+                error!("Failed to send cached response to {}: {}", client_addr, e);
+            }
+            return Ok(());
+        }
 
-            let (response, upstream_server, upstream_time) = match self.forward_query(&query, servers).await {
-                Ok(result) => result,
-                Err(e) => {
-                    error!("Failed to forward query for {}: {}", domain, e);
-                    // Send SERVFAIL so client doesn't retry forever
-                    if let Some(servfail) = build_servfail_response(&query) {
-                        let _ = socket.send_to(&servfail, client_addr).await;
+        // Check if there's already an in-flight query for this domain
+        {
+            let pending = self.pending_queries.lock().await;
+            if let Some(tx) = pending.get(&cache_key) {
+                // Subscribe to existing in-flight query
+                let mut rx = tx.subscribe();
+                drop(pending); // Release lock while waiting
+
+                match rx.recv().await {
+                    Ok(result) => {
+                        // Use result from the other request
+                        let mut response = result.response;
+                        // Copy transaction ID from our query
+                        if response.len() >= 2 && query.len() >= 2 {
+                            response[0] = query[0];
+                            response[1] = query[1];
+                        }
+                        // Add routes if matched (before response)
+                        if result.matched {
+                            join_all(
+                                result.ips.iter().map(|ip| self.route_manager.add_route(*ip)),
+                            )
+                            .await;
+                        }
+                        let total_time = start.elapsed();
+                        info!(
+                            "{} (coalesced, {}) | total: {:.1}ms",
+                            domain,
+                            if result.matched { "matched" } else { "pass" },
+                            total_time.as_secs_f64() * 1000.0
+                        );
+                        socket.send_to(&response, client_addr).await?;
+                        return Ok(());
                     }
-                    continue;
+                    Err(_) => {
+                        // Sender dropped (query failed), fall through to do our own query
+                    }
                 }
-            };
-
-            let ips = parse_ips_from_response(&response);
-
-            // Cache the response
-            let ttl = parse_ttl_from_response(&response);
-            self.cache.insert(&cache_key, response.clone(), ips.clone(), matched, ttl).await;
-
-            if matched {
-                join_all(ips.iter().map(|ip| self.route_manager.add_route(*ip))).await;
-                let total_time = start.elapsed();
-                info!(
-                    "{} -> {:?} (matched, routed) | upstream: {} in {:.1}ms | total: {:.1}ms",
-                    domain,
-                    ips,
-                    upstream_server,
-                    upstream_time.as_secs_f64() * 1000.0,
-                    total_time.as_secs_f64() * 1000.0
-                );
-            } else {
-                let total_time = start.elapsed();
-                debug!(
-                    "{} | upstream: {} in {:.1}ms | total: {:.1}ms",
-                    domain,
-                    upstream_server,
-                    upstream_time.as_secs_f64() * 1000.0,
-                    total_time.as_secs_f64() * 1000.0
-                );
-            }
-
-            if let Err(e) = socket.send_to(&response, client_addr).await {
-                error!("Failed to send response to {}: {}", client_addr, e);
             }
         }
+
+        // We're the first (or previous query failed) - create broadcast channel and register
+        let tx = {
+            let mut pending = self.pending_queries.lock().await;
+            let (tx, _) = broadcast::channel(16);
+            pending.insert(cache_key.clone(), tx.clone());
+            tx
+        };
+
+        // Do the actual upstream query (sequential server fallback preserved)
+        let result = self.do_upstream_query(&query, &domain, &cache_key).await;
+
+        // Remove from pending and broadcast result
+        self.pending_queries.lock().await.remove(&cache_key);
+
+        match result {
+            Ok((response, ips, matched, upstream_server, upstream_time)) => {
+                // Broadcast to waiters
+                let _ = tx.send(PendingResult {
+                    response: response.clone(),
+                    ips: ips.clone(),
+                    matched,
+                });
+
+                // Add routes if matched (before response)
+                if matched {
+                    join_all(ips.iter().map(|ip| self.route_manager.add_route(*ip))).await;
+                    let total_time = start.elapsed();
+                    info!(
+                        "{} -> {:?} (matched, routed) | upstream: {} in {:.1}ms | total: {:.1}ms",
+                        domain,
+                        ips,
+                        upstream_server,
+                        upstream_time.as_secs_f64() * 1000.0,
+                        total_time.as_secs_f64() * 1000.0
+                    );
+                } else {
+                    let total_time = start.elapsed();
+                    debug!(
+                        "{} | upstream: {} in {:.1}ms | total: {:.1}ms",
+                        domain,
+                        upstream_server,
+                        upstream_time.as_secs_f64() * 1000.0,
+                        total_time.as_secs_f64() * 1000.0
+                    );
+                }
+
+                // Respond - copy transaction ID
+                let mut final_response = response;
+                if final_response.len() >= 2 && query.len() >= 2 {
+                    final_response[0] = query[0];
+                    final_response[1] = query[1];
+                }
+                socket.send_to(&final_response, client_addr).await?;
+            }
+            Err(e) => {
+                error!("Failed to forward query for {}: {}", domain, e);
+                // Send SERVFAIL so client doesn't retry forever
+                if let Some(servfail) = build_servfail_response(&query) {
+                    socket.send_to(&servfail, client_addr).await?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Perform upstream query, cache result, return (response, ips, matched, server, time)
+    async fn do_upstream_query(
+        &self,
+        query: &[u8],
+        domain: &str,
+        cache_key: &str,
+    ) -> Result<(Vec<u8>, Vec<IpAddr>, bool, IpAddr, Duration)> {
+        let matched = self.patterns.matches(domain);
+        let servers = if matched && !self.matched_dns.is_empty() {
+            &self.matched_dns
+        } else {
+            &self.non_matched_dns
+        };
+
+        // forward_query still tries servers sequentially (unchanged)
+        let (response, upstream_server, upstream_time) = self.forward_query(query, servers).await?;
+        let ips = parse_ips_from_response(&response);
+
+        // Cache result
+        let ttl = parse_ttl_from_response(&response);
+        self.cache
+            .insert(cache_key, response.clone(), ips.clone(), matched, ttl)
+            .await;
+
+        Ok((response, ips, matched, upstream_server, upstream_time))
     }
 
     async fn forward_query(&self, query: &[u8], servers: &[IpAddr]) -> Result<(Vec<u8>, IpAddr, Duration)> {
@@ -165,18 +279,7 @@ impl DnsServer {
     }
 
     async fn forward_to_server(&self, query: &[u8], addr: SocketAddr) -> Result<Vec<u8>> {
-        let bind_addr: SocketAddr = if addr.is_ipv6() {
-            SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0)
-        } else {
-            SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0)
-        };
-        let socket = UdpSocket::bind(bind_addr).await?;
-        socket.send_to(query, addr).await?;
-
-        let mut buf = [0u8; MAX_PACKET_SIZE];
-        let (len, _) = timeout(UPSTREAM_TIMEOUT, socket.recv_from(&mut buf)).await??;
-
-        Ok(buf[..len].to_vec())
+        self.upstream.query(query, addr.ip(), UPSTREAM_TIMEOUT).await
     }
 }
 
