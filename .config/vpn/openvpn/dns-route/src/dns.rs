@@ -91,8 +91,11 @@ impl DnsServer {
         let domain = match parse_domain_from_query(&query) {
             Some(d) => d,
             None => {
-                warn!("Failed to parse DNS query from {}", client_addr);
-                return Ok(());
+                warn!(
+                    "Failed to parse domain from query ({}), forwarding as passthrough",
+                    client_addr
+                );
+                return self.forward_passthrough(&query, client_addr, socket).await;
             }
         };
 
@@ -232,6 +235,34 @@ impl DnsServer {
         Ok(())
     }
 
+    /// Forward a query as pass-through when domain parsing fails.
+    /// No caching, no routing - just relay the response from upstream.
+    async fn forward_passthrough(
+        &self,
+        query: &[u8],
+        client_addr: SocketAddr,
+        socket: &UdpSocket,
+    ) -> Result<()> {
+        match self.forward_query(query, &self.non_matched_dns).await {
+            Ok((mut response, server, _time)) => {
+                // Copy transaction ID from query to response
+                if response.len() >= 2 && query.len() >= 2 {
+                    response[0] = query[0];
+                    response[1] = query[1];
+                }
+                debug!("Passthrough query forwarded via {}", server);
+                socket.send_to(&response, client_addr).await?;
+            }
+            Err(e) => {
+                warn!("Passthrough forward failed: {}", e);
+                if let Some(servfail) = build_servfail_response(query) {
+                    socket.send_to(&servfail, client_addr).await?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Perform upstream query, cache result, return (response, ips, matched, server, time)
     async fn do_upstream_query(
         &self,
@@ -250,11 +281,30 @@ impl DnsServer {
         let (response, upstream_server, upstream_time) = self.forward_query(query, servers).await?;
         let ips = parse_ips_from_response(&response);
 
-        // Cache result
-        let ttl = parse_ttl_from_response(&response);
-        self.cache
-            .insert(cache_key, response.clone(), ips.clone(), matched, ttl)
-            .await;
+        // Conditional caching: skip truncated, error responses, and unparseable TTLs
+        let rcode = parse_rcode_from_response(&response);
+        let cacheable_rcode = matches!(rcode, Some(DnsRcode::NoError) | Some(DnsRcode::NxDomain));
+
+        if is_truncated(&response) {
+            debug!("Not caching response for {} (truncated)", domain);
+        } else if !cacheable_rcode {
+            debug!(
+                "Not caching response for {} (rcode: {:?})",
+                domain, rcode
+            );
+        } else if let Some(ttl_info) = parse_ttl_from_response(&response) {
+            // Cap NXDOMAIN TTL to prevent long-lived negative cache entries
+            let ttl = if matches!(rcode, Some(DnsRcode::NxDomain)) {
+                ttl_info.ttl.min(300)
+            } else {
+                ttl_info.ttl
+            };
+            self.cache
+                .insert(cache_key, response.clone(), ips.clone(), matched, Some(ttl))
+                .await;
+        } else {
+            debug!("Not caching response for {} (TTL unparseable)", domain);
+        }
 
         Ok((response, ips, matched, upstream_server, upstream_time))
     }
@@ -348,30 +398,129 @@ fn skip_question_section(packet: &[u8], mut pos: usize, qdcount: u16) -> Option<
     Some(pos)
 }
 
-/// Parse TTL from first answer in DNS response.
-fn parse_ttl_from_response(packet: &[u8]) -> Option<u64> {
+/// Check if DNS response has TC (truncation) bit set.
+/// TC bit indicates the response was truncated and client should retry via TCP.
+fn is_truncated(packet: &[u8]) -> bool {
+    // TC bit is bit 1 of byte 2 (flags field)
+    packet.len() >= 3 && (packet[2] & 0x02) != 0
+}
+
+/// DNS response codes (RCODE)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DnsRcode {
+    NoError,   // 0: No error
+    ServFail,  // 2: Server failure
+    NxDomain,  // 3: Non-existent domain
+    Refused,   // 5: Query refused
+    Other(u8), // Other codes
+}
+
+/// Parse RCODE from DNS response header.
+/// RCODE is in the lower 4 bits of byte 3 (flags field).
+fn parse_rcode_from_response(packet: &[u8]) -> Option<DnsRcode> {
+    if packet.len() < 4 {
+        return None;
+    }
+    let rcode = packet[3] & 0x0F;
+    Some(match rcode {
+        0 => DnsRcode::NoError,
+        2 => DnsRcode::ServFail,
+        3 => DnsRcode::NxDomain,
+        5 => DnsRcode::Refused,
+        n => DnsRcode::Other(n),
+    })
+}
+
+/// TTL parsing result with context about source
+#[derive(Debug)]
+struct TtlInfo {
+    ttl: u64,
+    from_authority: bool,
+}
+
+/// Parse minimum TTL from DNS response.
+/// For successful responses: returns minimum TTL across all answer records.
+/// For NXDOMAIN: returns SOA TTL from authority section.
+/// Returns None if no TTL can be determined.
+fn parse_ttl_from_response(packet: &[u8]) -> Option<TtlInfo> {
     if packet.len() < 12 {
         return None;
     }
 
     let ancount = u16::from_be_bytes([packet[6], packet[7]]);
-    if ancount == 0 {
-        return None;
-    }
-
+    let nscount = u16::from_be_bytes([packet[8], packet[9]]);
     let qdcount = u16::from_be_bytes([packet[4], packet[5]]);
     let mut pos = skip_question_section(packet, 12, qdcount)?;
 
-    // Skip answer name (may be compressed)
-    pos = skip_dns_name(packet, pos)?;
+    // First, try to get minimum TTL from answer section
+    if ancount > 0 {
+        let mut min_ttl: Option<u64> = None;
 
-    // Read TTL (bytes 4-7 of the answer record, after TYPE and CLASS)
-    if pos + 8 <= packet.len() {
-        let ttl = u32::from_be_bytes([packet[pos + 4], packet[pos + 5], packet[pos + 6], packet[pos + 7]]);
-        Some(ttl as u64)
-    } else {
-        None
+        for _ in 0..ancount {
+            pos = skip_dns_name(packet, pos)?;
+            if pos + 10 > packet.len() {
+                break;
+            }
+
+            let ttl = u32::from_be_bytes([
+                packet[pos + 4],
+                packet[pos + 5],
+                packet[pos + 6],
+                packet[pos + 7],
+            ]) as u64;
+
+            min_ttl = Some(match min_ttl {
+                Some(current) => current.min(ttl),
+                None => ttl,
+            });
+
+            let rdlength = u16::from_be_bytes([packet[pos + 8], packet[pos + 9]]) as usize;
+            pos += 10 + rdlength;
+
+            if pos > packet.len() {
+                break;
+            }
+        }
+
+        return min_ttl.map(|ttl| TtlInfo {
+            ttl,
+            from_authority: false,
+        });
     }
+
+    // No answers - look for SOA in authority section (for NXDOMAIN)
+    if nscount > 0 {
+        for _ in 0..nscount {
+            pos = skip_dns_name(packet, pos)?;
+            if pos + 10 > packet.len() {
+                break;
+            }
+
+            let rtype = u16::from_be_bytes([packet[pos], packet[pos + 1]]);
+            let ttl = u32::from_be_bytes([
+                packet[pos + 4],
+                packet[pos + 5],
+                packet[pos + 6],
+                packet[pos + 7],
+            ]) as u64;
+            let rdlength = u16::from_be_bytes([packet[pos + 8], packet[pos + 9]]) as usize;
+
+            // TYPE 6 = SOA
+            if rtype == 6 {
+                return Some(TtlInfo {
+                    ttl,
+                    from_authority: true,
+                });
+            }
+
+            pos += 10 + rdlength;
+            if pos > packet.len() {
+                break;
+            }
+        }
+    }
+
+    None
 }
 
 /// Parse domain name from DNS query packet.
@@ -552,8 +701,9 @@ mod tests {
             0x00, 0x04, // RDLENGTH: 4 bytes
             0x01, 0x02, 0x03, 0x04, // RDATA: IP 1.2.3.4
         ];
-        let ttl = parse_ttl_from_response(&response);
-        assert_eq!(ttl, Some(300));
+        let ttl_info = parse_ttl_from_response(&response);
+        assert!(ttl_info.is_some());
+        assert_eq!(ttl_info.unwrap().ttl, 300);
     }
 
     #[test]
@@ -606,5 +756,133 @@ mod tests {
             0x00, 0x01, // QTYPE (should be at position 2)
         ];
         assert_eq!(skip_dns_name(&packet, 0), Some(2));
+    }
+
+    #[test]
+    fn test_parse_rcode_noerror() {
+        // Response with RCODE=0 (NoError)
+        let response = [0x00, 0x01, 0x81, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        assert_eq!(parse_rcode_from_response(&response), Some(DnsRcode::NoError));
+    }
+
+    #[test]
+    fn test_parse_rcode_servfail() {
+        // Response with RCODE=2 (ServFail)
+        let response = [0x00, 0x01, 0x81, 0x82, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        assert_eq!(parse_rcode_from_response(&response), Some(DnsRcode::ServFail));
+    }
+
+    #[test]
+    fn test_parse_rcode_nxdomain() {
+        // Response with RCODE=3 (NxDomain)
+        let response = [0x00, 0x01, 0x81, 0x83, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        assert_eq!(parse_rcode_from_response(&response), Some(DnsRcode::NxDomain));
+    }
+
+    #[test]
+    fn test_parse_rcode_refused() {
+        // Response with RCODE=5 (Refused)
+        let response = [0x00, 0x01, 0x81, 0x85, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        assert_eq!(parse_rcode_from_response(&response), Some(DnsRcode::Refused));
+    }
+
+    #[test]
+    fn test_parse_min_ttl_multiple_answers() {
+        // Response with 2 answers: TTL 300 and TTL 60, should return 60 (minimum)
+        #[rustfmt::skip]
+        let response = [
+            // Header
+            0x00, 0x01, // Transaction ID
+            0x81, 0x80, // Flags
+            0x00, 0x01, // QDCOUNT: 1
+            0x00, 0x02, // ANCOUNT: 2
+            0x00, 0x00, // NSCOUNT: 0
+            0x00, 0x00, // ARCOUNT: 0
+            // Question section: "example.com"
+            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+            0x03, b'c', b'o', b'm',
+            0x00,       // Null terminator
+            0x00, 0x01, // QTYPE: A
+            0x00, 0x01, // QCLASS: IN
+            // Answer 1
+            0xC0, 0x0C, // Name: compression pointer
+            0x00, 0x01, // TYPE: A
+            0x00, 0x01, // CLASS: IN
+            0x00, 0x00, 0x01, 0x2C, // TTL: 300 seconds
+            0x00, 0x04, // RDLENGTH: 4 bytes
+            0x01, 0x02, 0x03, 0x04, // RDATA: IP 1.2.3.4
+            // Answer 2
+            0xC0, 0x0C, // Name: compression pointer
+            0x00, 0x01, // TYPE: A
+            0x00, 0x01, // CLASS: IN
+            0x00, 0x00, 0x00, 0x3C, // TTL: 60 seconds
+            0x00, 0x04, // RDLENGTH: 4 bytes
+            0x05, 0x06, 0x07, 0x08, // RDATA: IP 5.6.7.8
+        ];
+        let ttl_info = parse_ttl_from_response(&response);
+        assert!(ttl_info.is_some());
+        let info = ttl_info.unwrap();
+        assert_eq!(info.ttl, 60);
+        assert!(!info.from_authority);
+    }
+
+    #[test]
+    fn test_parse_ttl_nxdomain_with_soa() {
+        // NXDOMAIN response with SOA in authority section
+        #[rustfmt::skip]
+        let response = [
+            // Header
+            0x00, 0x01, // Transaction ID
+            0x81, 0x83, // Flags: RCODE=3 (NXDOMAIN)
+            0x00, 0x01, // QDCOUNT: 1
+            0x00, 0x00, // ANCOUNT: 0
+            0x00, 0x01, // NSCOUNT: 1 (SOA in authority)
+            0x00, 0x00, // ARCOUNT: 0
+            // Question section: "nonexistent.example.com"
+            0x0B, b'n', b'o', b'n', b'e', b'x', b'i', b's', b't', b'e', b'n', b't',
+            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+            0x03, b'c', b'o', b'm',
+            0x00,       // Null terminator
+            0x00, 0x01, // QTYPE: A
+            0x00, 0x01, // QCLASS: IN
+            // Authority section: SOA record
+            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+            0x03, b'c', b'o', b'm',
+            0x00,       // Null terminator
+            0x00, 0x06, // TYPE: SOA (6)
+            0x00, 0x01, // CLASS: IN
+            0x00, 0x00, 0x00, 0x78, // TTL: 120 seconds
+            0x00, 0x16, // RDLENGTH: 22 bytes (simplified SOA rdata)
+            // Simplified SOA RDATA (just padding to match RDLENGTH)
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let ttl_info = parse_ttl_from_response(&response);
+        assert!(ttl_info.is_some());
+        let info = ttl_info.unwrap();
+        assert_eq!(info.ttl, 120);
+        assert!(info.from_authority);
+    }
+
+    #[test]
+    fn test_is_truncated_true() {
+        // Response with TC bit set (bit 1 of byte 2)
+        let response = [0x00, 0x01, 0x82, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        assert!(is_truncated(&response));
+    }
+
+    #[test]
+    fn test_is_truncated_false() {
+        // Normal response without TC bit
+        let response = [0x00, 0x01, 0x81, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        assert!(!is_truncated(&response));
+    }
+
+    #[test]
+    fn test_is_truncated_short_packet() {
+        // Packet too short to have flags
+        let response = [0x00, 0x01];
+        assert!(!is_truncated(&response));
     }
 }

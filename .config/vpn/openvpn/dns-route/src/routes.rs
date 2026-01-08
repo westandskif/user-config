@@ -1,15 +1,62 @@
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use tokio::process::Command;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tokio::sync::RwLock;
 
 use anyhow::Result;
 use tokio::time;
 use tracing::{debug, error, info, warn};
 
 use crate::route_store::RouteStore;
+
+/// In-memory tracker to avoid unnecessary route refresh operations under high QPS.
+/// Only refreshes routes when they're within the threshold of TTL remaining.
+struct RouteRefresher {
+    last_refresh: RwLock<HashMap<IpAddr, Instant>>,
+    ttl_secs: u64,
+    /// Refresh when less than this fraction of TTL remains (0.25 = 25%)
+    refresh_threshold: f64,
+}
+
+impl RouteRefresher {
+    fn new(ttl_secs: u64) -> Self {
+        Self {
+            last_refresh: RwLock::new(HashMap::new()),
+            ttl_secs,
+            refresh_threshold: 0.25,
+        }
+    }
+
+    /// Returns true if the route should be refreshed (never seen or near expiry).
+    async fn should_refresh(&self, ip: IpAddr) -> bool {
+        let entries = self.last_refresh.read().await;
+        match entries.get(&ip) {
+            None => true,
+            Some(last) => {
+                let elapsed = last.elapsed().as_secs();
+                let refresh_after = ((1.0 - self.refresh_threshold) * self.ttl_secs as f64) as u64;
+                elapsed >= refresh_after
+            }
+        }
+    }
+
+    async fn mark_refreshed(&self, ip: IpAddr) {
+        self.last_refresh.write().await.insert(ip, Instant::now());
+    }
+
+    /// Remove entries older than TTL (no longer relevant).
+    async fn cleanup_stale(&self) {
+        let ttl = Duration::from_secs(self.ttl_secs);
+        self.last_refresh
+            .write()
+            .await
+            .retain(|_, last| last.elapsed() < ttl);
+    }
+}
 
 /// Manages routes with expiration.
 pub struct RouteManager {
@@ -18,6 +65,7 @@ pub struct RouteManager {
     ttl_secs: u64,
     store: RouteStore,
     run_id: String,
+    refresher: RouteRefresher,
 }
 
 fn now_unix() -> i64 {
@@ -52,12 +100,19 @@ impl RouteManager {
             ttl_secs,
             store,
             run_id,
+            refresher: RouteRefresher::new(ttl_secs),
         })
     }
 
     /// Add a route for the given IP address through the gateway.
-    /// If the route already exists, refresh its expiration time.
+    /// If the route already exists and was recently refreshed, skip.
+    /// If the route exists but is near expiry, refresh its expiration time.
     pub async fn add_route(&self, ip: IpAddr) {
+        // Fast path: skip if recently refreshed (avoids DB operations under high QPS)
+        if !self.refresher.should_refresh(ip).await {
+            return;
+        }
+
         // Get appropriate gateway for IP version
         let gateway = if ip.is_ipv6() {
             match &self.gateway_ipv6 {
@@ -88,6 +143,8 @@ impl RouteManager {
             // Just refresh expiration
             if let Err(e) = self.store.upsert_route(&ip_str, family, gateway, expires_at, &self.run_id).await {
                 warn!("Failed to refresh route in store: {}", e);
+            } else {
+                self.refresher.mark_refreshed(ip).await;
             }
             debug!("Refreshed route for {}", ip);
             return;
@@ -97,6 +154,8 @@ impl RouteManager {
         if self.create_system_route(ip, gateway).await {
             if let Err(e) = self.store.upsert_route(&ip_str, family, gateway, expires_at, &self.run_id).await {
                 warn!("Failed to persist route to store: {}", e);
+            } else {
+                self.refresher.mark_refreshed(ip).await;
             }
             info!("Added route for {} via {}", ip, gateway);
         }
@@ -110,6 +169,7 @@ impl RouteManager {
             loop {
                 interval.tick().await;
                 manager.cleanup_expired().await;
+                manager.refresher.cleanup_stale().await;
             }
         });
     }
