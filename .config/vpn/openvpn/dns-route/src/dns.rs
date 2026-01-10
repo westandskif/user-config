@@ -1,11 +1,14 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use futures::future::join_all;
+use hickory_proto::op::Message;
+use hickory_proto::rr::rdata::svcb::{SvcParamKey, SvcParamValue};
+use hickory_proto::rr::RData;
 use tokio::net::UdpSocket;
 use tokio::sync::{broadcast, Mutex};
 use tracing::{debug, error, info, warn};
@@ -18,6 +21,7 @@ use crate::upstream::UpstreamSocketManager;
 const DNS_PORT: u16 = 53;
 const MAX_PACKET_SIZE: usize = 4096;
 const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(5);
+const UPSTREAM_TIMEOUT_LAST: Duration = Duration::from_secs(10);
 
 /// Result broadcast to concurrent requests for the same domain
 #[derive(Clone)]
@@ -126,8 +130,9 @@ impl DnsServer {
             }
             let total_time = start.elapsed();
             info!(
-                "{} (cached, {}) | total: {:.1}ms",
+                "{} {} (cached, {}) | total: {:.1}ms",
                 domain,
+                qtype_to_string(qtype),
                 if was_matched { "matched" } else { "pass" },
                 total_time.as_secs_f64() * 1000.0
             );
@@ -169,8 +174,9 @@ impl DnsServer {
                             }
                             let total_time = start.elapsed();
                             info!(
-                                "{} (coalesced, {}) | total: {:.1}ms",
+                                "{} {} (coalesced, {}) | total: {:.1}ms",
                                 domain,
+                                qtype_to_string(qtype),
                                 if result.matched { "matched" } else { "pass" },
                                 total_time.as_secs_f64() * 1000.0
                             );
@@ -187,35 +193,36 @@ impl DnsServer {
                     // We're the owner - do the upstream query
                     let result = self.do_upstream_query(&query, &domain, &cache_key).await;
 
-                    // Remove from pending
-                    self.pending_queries.lock().await.remove(&cache_key);
-
                     match result {
                         Ok((response, ips, matched, upstream_server, upstream_time)) => {
-                            // Broadcast to waiters
+                            // Broadcast to waiters FIRST (before removing from pending)
                             let _ = tx.send(PendingResult {
                                 response: response.clone(),
                                 ips: ips.clone(),
                                 matched,
                             });
 
+                            // Remove from pending AFTER broadcast to close the race window
+                            self.pending_queries.lock().await.remove(&cache_key);
+
+                            let total_time = start.elapsed();
                             if matched {
                                 join_all(ips.iter().map(|ip| self.route_manager.add_route(*ip)))
                                     .await;
-                                let total_time = start.elapsed();
                                 info!(
-                                    "{} -> {} IPs (matched, routed) | upstream: {} in {:.1}ms | total: {:.1}ms",
+                                    "{} {} -> {} IPs (matched, routed) | upstream: {} in {:.1}ms | total: {:.1}ms",
                                     domain,
+                                    qtype_to_string(qtype),
                                     ips.len(),
                                     upstream_server,
                                     upstream_time.as_secs_f64() * 1000.0,
                                     total_time.as_secs_f64() * 1000.0
                                 );
                             } else {
-                                let total_time = start.elapsed();
-                                debug!(
-                                    "{} | upstream: {} in {:.1}ms | total: {:.1}ms",
+                                info!(
+                                    "{} {} | upstream: {} in {:.1}ms | total: {:.1}ms",
                                     domain,
+                                    qtype_to_string(qtype),
                                     upstream_server,
                                     upstream_time.as_secs_f64() * 1000.0,
                                     total_time.as_secs_f64() * 1000.0
@@ -230,6 +237,9 @@ impl DnsServer {
                             socket.send_to(&final_response, client_addr).await?;
                         }
                         Err(e) => {
+                            // Remove from pending on error
+                            self.pending_queries.lock().await.remove(&cache_key);
+
                             error!("Failed to forward query for {}: {}", domain, e);
                             if let Some(servfail) = build_servfail_response(&query) {
                                 socket.send_to(&servfail, client_addr).await?;
@@ -317,10 +327,12 @@ impl DnsServer {
     }
 
     async fn forward_query(&self, query: &[u8], servers: &[IpAddr]) -> Result<(Vec<u8>, IpAddr, Duration)> {
-        for server in servers {
+        let last_idx = servers.len().saturating_sub(1);
+        for (idx, server) in servers.iter().enumerate() {
+            let is_last = idx == last_idx;
             let addr = SocketAddr::new(*server, DNS_PORT);
             let start = Instant::now();
-            match self.forward_to_server(query, addr).await {
+            match self.forward_to_server(query, addr, is_last).await {
                 Ok(response) => {
                     let elapsed = start.elapsed();
                     return Ok((response, *server, elapsed));
@@ -335,72 +347,47 @@ impl DnsServer {
         anyhow::bail!("All upstream DNS servers failed")
     }
 
-    async fn forward_to_server(&self, query: &[u8], addr: SocketAddr) -> Result<Vec<u8>> {
-        self.upstream.query(query, addr.ip(), UPSTREAM_TIMEOUT).await
+    async fn forward_to_server(&self, query: &[u8], addr: SocketAddr, is_last: bool) -> Result<Vec<u8>> {
+        let timeout = if is_last { UPSTREAM_TIMEOUT_LAST } else { UPSTREAM_TIMEOUT };
+        self.upstream.query(query, addr.ip(), timeout).await
     }
 }
 
-/// Parse query type from DNS query packet.
+/// Parse query type from DNS query packet using hickory-proto.
 fn parse_qtype_from_query(packet: &[u8]) -> Option<u16> {
-    if packet.len() < 12 {
-        return None;
-    }
+    let message = Message::from_vec(packet).ok()?;
+    Some(message.query()?.query_type().into())
+}
 
-    // Skip the domain name (handles compression)
-    let pos = skip_dns_name(packet, 12)?;
-
-    // Read QTYPE (2 bytes after domain)
-    if pos + 2 <= packet.len() {
-        Some(u16::from_be_bytes([packet[pos], packet[pos + 1]]))
-    } else {
-        None
+/// Convert DNS query type (u16) to human-readable string.
+fn qtype_to_string(qtype: u16) -> &'static str {
+    match qtype {
+        1 => "A",
+        2 => "NS",
+        5 => "CNAME",
+        6 => "SOA",
+        12 => "PTR",
+        15 => "MX",
+        16 => "TXT",
+        28 => "AAAA",
+        33 => "SRV",
+        43 => "DS",
+        46 => "RRSIG",
+        47 => "NSEC",
+        48 => "DNSKEY",
+        52 => "TLSA",
+        64 => "SVCB",
+        65 => "HTTPS",
+        255 => "ANY",
+        _ => "?",
     }
 }
 
-/// Skip a DNS name (domain) in a packet. Handles both uncompressed labels and compressed pointers.
-/// Returns the new position after the name, or None if parsing fails.
-fn skip_dns_name(packet: &[u8], mut pos: usize) -> Option<usize> {
-    while pos < packet.len() {
-        let b = packet[pos];
-        if b == 0 {
-            // Null terminator - end of uncompressed name
-            return Some(pos + 1);
-        } else if b & 0xC0 == 0xC0 {
-            // Compression pointer (2 bytes) - end of name
-            if pos + 2 > packet.len() {
-                return None;
-            }
-            return Some(pos + 2);
-        } else {
-            // Label: length byte + label bytes
-            let len = b as usize;
-            pos += 1 + len;
-            if pos > packet.len() {
-                return None;
-            }
-        }
-    }
-    None // Ran off end of packet
-}
-
-/// Skip the entire question section (QDCOUNT questions).
-/// Returns the new position after all questions, or None if parsing fails.
-fn skip_question_section(packet: &[u8], mut pos: usize, qdcount: u16) -> Option<usize> {
-    for _ in 0..qdcount {
-        pos = skip_dns_name(packet, pos)?;
-        pos += 4; // QTYPE (2) + QCLASS (2)
-        if pos > packet.len() {
-            return None;
-        }
-    }
-    Some(pos)
-}
-
-/// Check if DNS response has TC (truncation) bit set.
-/// TC bit indicates the response was truncated and client should retry via TCP.
+/// Check if DNS response has TC (truncation) bit set using hickory-proto.
 fn is_truncated(packet: &[u8]) -> bool {
-    // TC bit is bit 1 of byte 2 (flags field)
-    packet.len() >= 3 && (packet[2] & 0x02) != 0
+    Message::from_vec(packet)
+        .map(|m| m.truncated())
+        .unwrap_or(false)
 }
 
 /// DNS response codes (RCODE)
@@ -413,19 +400,17 @@ enum DnsRcode {
     Other(u8), // Other codes
 }
 
-/// Parse RCODE from DNS response header.
-/// RCODE is in the lower 4 bits of byte 3 (flags field).
+/// Parse RCODE from DNS response header using hickory-proto.
 fn parse_rcode_from_response(packet: &[u8]) -> Option<DnsRcode> {
-    if packet.len() < 4 {
-        return None;
-    }
-    let rcode = packet[3] & 0x0F;
-    Some(match rcode {
-        0 => DnsRcode::NoError,
-        2 => DnsRcode::ServFail,
-        3 => DnsRcode::NxDomain,
-        5 => DnsRcode::Refused,
-        n => DnsRcode::Other(n),
+    use hickory_proto::op::ResponseCode;
+    let message = Message::from_vec(packet).ok()?;
+    let response_code = message.response_code();
+    Some(match response_code {
+        ResponseCode::NoError => DnsRcode::NoError,
+        ResponseCode::ServFail => DnsRcode::ServFail,
+        ResponseCode::NXDomain => DnsRcode::NxDomain,
+        ResponseCode::Refused => DnsRcode::Refused,
+        _ => DnsRcode::Other(u16::from(response_code) as u8),
     })
 }
 
@@ -436,162 +421,39 @@ struct TtlInfo {
     from_authority: bool,
 }
 
-/// Parse minimum TTL from DNS response.
+/// Parse minimum TTL from DNS response using hickory-proto.
 /// For successful responses: returns minimum TTL across all answer records.
 /// For NXDOMAIN: returns SOA TTL from authority section.
 /// Returns None if no TTL can be determined.
 fn parse_ttl_from_response(packet: &[u8]) -> Option<TtlInfo> {
-    if packet.len() < 12 {
-        return None;
-    }
-
-    let ancount = u16::from_be_bytes([packet[6], packet[7]]);
-    let nscount = u16::from_be_bytes([packet[8], packet[9]]);
-    let qdcount = u16::from_be_bytes([packet[4], packet[5]]);
-    let mut pos = skip_question_section(packet, 12, qdcount)?;
+    let message = Message::from_vec(packet).ok()?;
 
     // First, try to get minimum TTL from answer section
-    if ancount > 0 {
-        let mut min_ttl: Option<u64> = None;
-
-        for _ in 0..ancount {
-            pos = skip_dns_name(packet, pos)?;
-            if pos + 10 > packet.len() {
-                break;
-            }
-
-            let ttl = u32::from_be_bytes([
-                packet[pos + 4],
-                packet[pos + 5],
-                packet[pos + 6],
-                packet[pos + 7],
-            ]) as u64;
-
-            min_ttl = Some(match min_ttl {
-                Some(current) => current.min(ttl),
-                None => ttl,
-            });
-
-            let rdlength = u16::from_be_bytes([packet[pos + 8], packet[pos + 9]]) as usize;
-            pos += 10 + rdlength;
-
-            if pos > packet.len() {
-                break;
-            }
-        }
-
-        return min_ttl.map(|ttl| TtlInfo {
+    if let Some(ttl) = message.answers().iter().map(|r| r.ttl() as u64).min() {
+        return Some(TtlInfo {
             ttl,
             from_authority: false,
         });
     }
 
     // No answers - look for SOA in authority section (for NXDOMAIN)
-    if nscount > 0 {
-        for _ in 0..nscount {
-            pos = skip_dns_name(packet, pos)?;
-            if pos + 10 > packet.len() {
-                break;
-            }
-
-            let rtype = u16::from_be_bytes([packet[pos], packet[pos + 1]]);
-            let ttl = u32::from_be_bytes([
-                packet[pos + 4],
-                packet[pos + 5],
-                packet[pos + 6],
-                packet[pos + 7],
-            ]) as u64;
-            let rdlength = u16::from_be_bytes([packet[pos + 8], packet[pos + 9]]) as usize;
-
-            // TYPE 6 = SOA
-            if rtype == 6 {
-                return Some(TtlInfo {
-                    ttl,
-                    from_authority: true,
-                });
-            }
-
-            pos += 10 + rdlength;
-            if pos > packet.len() {
-                break;
-            }
+    for record in message.name_servers() {
+        if matches!(record.data(), RData::SOA(_)) {
+            return Some(TtlInfo {
+                ttl: record.ttl() as u64,
+                from_authority: true,
+            });
         }
     }
 
     None
 }
 
-/// Decompress a DNS name starting at the given position.
-/// Returns (domain_string, bytes_consumed_at_start_position) or None on error.
-/// Handles both uncompressed labels and compression pointers per RFC 1035.
-fn decompress_dns_name(packet: &[u8], start: usize) -> Option<(String, usize)> {
-    let mut labels = Vec::new();
-    let mut pos = start;
-    let mut bytes_consumed = 0;
-    let mut followed_pointer = false;
-    let mut pointer_depth = 0;
-    const MAX_POINTER_DEPTH: u8 = 10;
-
-    while pos < packet.len() {
-        let b = packet[pos];
-
-        if b == 0 {
-            // Null terminator - end of name
-            if !followed_pointer {
-                bytes_consumed += 1;
-            }
-            break;
-        } else if b & 0xC0 == 0xC0 {
-            // Compression pointer (2 bytes)
-            if pos + 1 >= packet.len() {
-                return None;
-            }
-            if !followed_pointer {
-                bytes_consumed += 2;
-                followed_pointer = true;
-            }
-            pointer_depth += 1;
-            if pointer_depth > MAX_POINTER_DEPTH {
-                return None; // Prevent infinite loops
-            }
-            // Extract 14-bit offset
-            let offset = (((b & 0x3F) as usize) << 8) | (packet[pos + 1] as usize);
-            if offset >= packet.len() {
-                return None; // Invalid pointer target
-            }
-            pos = offset;
-        } else if b & 0xC0 == 0 {
-            // Label: length byte (0x01-0x3F) followed by label bytes
-            let len = b as usize;
-            if pos + 1 + len > packet.len() {
-                return None;
-            }
-            let label = std::str::from_utf8(&packet[pos + 1..pos + 1 + len]).ok()?;
-            labels.push(label.to_string());
-            if !followed_pointer {
-                bytes_consumed += 1 + len;
-            }
-            pos += 1 + len;
-        } else {
-            // Reserved (0x40-0xBF) - invalid
-            return None;
-        }
-    }
-
-    if labels.is_empty() {
-        None
-    } else {
-        Some((labels.join("."), bytes_consumed))
-    }
-}
-
-/// Parse domain name from DNS query packet.
-/// Handles both uncompressed labels and compression pointers.
+/// Parse domain name from DNS query packet using hickory-proto.
 fn parse_domain_from_query(packet: &[u8]) -> Option<String> {
-    if packet.len() < 12 {
-        return None;
-    }
-    decompress_dns_name(packet, 12).map(|(domain, _)| domain)
+    let message = Message::from_vec(packet).ok()?;
+    let query = message.query()?;
+    Some(query.name().to_string().trim_end_matches('.').to_string())
 }
 
 /// Build a SERVFAIL response from a query (raw DNS packet manipulation).
@@ -607,73 +469,71 @@ fn build_servfail_response(query: &[u8]) -> Option<Vec<u8>> {
     Some(response)
 }
 
-/// Parse IP addresses from DNS response packet (A and AAAA records).
+/// Parse IP addresses from DNS response packet (A, AAAA, and HTTPS/SVCB records).
+/// For HTTPS/SVCB records, extracts ipv4hint and ipv6hint parameters.
+/// Also parses A/AAAA records from the additional section (glue records).
 fn parse_ips_from_response(packet: &[u8]) -> Vec<IpAddr> {
     let mut ips = Vec::new();
 
-    if packet.len() < 12 {
-        return ips;
-    }
-
-    let ancount = u16::from_be_bytes([packet[6], packet[7]]) as usize;
-    if ancount == 0 {
-        return ips;
-    }
-
-    let qdcount = u16::from_be_bytes([packet[4], packet[5]]);
-    let mut pos = match skip_question_section(packet, 12, qdcount) {
-        Some(p) => p,
-        None => return ips,
+    let message = match Message::from_vec(packet) {
+        Ok(m) => m,
+        Err(_) => return ips,
     };
 
-    for _ in 0..ancount {
-        // Skip answer name (may be compressed)
-        pos = match skip_dns_name(packet, pos) {
-            Some(p) => p,
-            None => break,
-        };
-
-        if pos + 10 > packet.len() {
-            break;
-        }
-
-        let rtype = u16::from_be_bytes([packet[pos], packet[pos + 1]]);
-        let rdlength = u16::from_be_bytes([packet[pos + 8], packet[pos + 9]]) as usize;
-
-        pos += 10;
-
-        if pos + rdlength > packet.len() {
-            break;
-        }
-
-        match rtype {
-            1 if rdlength == 4 => {
-                let ip = Ipv4Addr::new(
-                    packet[pos],
-                    packet[pos + 1],
-                    packet[pos + 2],
-                    packet[pos + 3],
-                );
-                ips.push(IpAddr::V4(ip));
+    // Parse answer section
+    for record in message.answers() {
+        match record.data() {
+            RData::A(a) => {
+                ips.push(IpAddr::V4(a.0));
             }
-            28 if rdlength == 16 => {
-                let mut octets = [0u8; 16];
-                octets.copy_from_slice(&packet[pos..pos + 16]);
-                let ip = Ipv6Addr::from(octets);
-                ips.push(IpAddr::V6(ip));
+            RData::AAAA(aaaa) => {
+                ips.push(IpAddr::V6(aaaa.0));
+            }
+            RData::HTTPS(https) => {
+                extract_svcb_ips(https.0.svc_params(), &mut ips);
+            }
+            RData::SVCB(svcb) => {
+                extract_svcb_ips(svcb.svc_params(), &mut ips);
             }
             _ => {}
         }
+    }
 
-        pos += rdlength;
+    // Parse additional section (contains A/AAAA glue records for HTTPS/SVCB)
+    for record in message.additionals() {
+        match record.data() {
+            RData::A(a) => {
+                ips.push(IpAddr::V4(a.0));
+            }
+            RData::AAAA(aaaa) => {
+                ips.push(IpAddr::V6(aaaa.0));
+            }
+            _ => {}
+        }
     }
 
     ips
 }
 
+/// Extract IP addresses from SVCB/HTTPS ipv4hint and ipv6hint parameters.
+fn extract_svcb_ips(params: &[(SvcParamKey, SvcParamValue)], ips: &mut Vec<IpAddr>) {
+    for (key, value) in params {
+        match (key, value) {
+            (SvcParamKey::Ipv4Hint, SvcParamValue::Ipv4Hint(hint)) => {
+                ips.extend(hint.0.iter().map(|a| IpAddr::V4(a.0)));
+            }
+            (SvcParamKey::Ipv6Hint, SvcParamValue::Ipv6Hint(hint)) => {
+                ips.extend(hint.0.iter().map(|aaaa| IpAddr::V6(aaaa.0)));
+            }
+            _ => {}
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::Ipv4Addr;
 
     #[test]
     fn test_parse_domain() {
@@ -684,65 +544,6 @@ mod tests {
         ];
         let domain = parse_domain_from_query(&query);
         assert_eq!(domain, Some("example.com".to_string()));
-    }
-
-    #[test]
-    fn test_parse_ips_with_compressed_qname() {
-        // DNS response where question section uses a compressed QNAME pointer
-        // This tests the fix for the bug where QTYPE's high byte (0x00) was
-        // incorrectly treated as a null terminator after a compression pointer.
-        #[rustfmt::skip]
-        let response = [
-            // Header (12 bytes)
-            0x00, 0x01, // Transaction ID
-            0x81, 0x80, // Flags: response, recursion desired/available
-            0x00, 0x01, // QDCOUNT: 1
-            0x00, 0x01, // ANCOUNT: 1
-            0x00, 0x00, // NSCOUNT: 0
-            0x00, 0x00, // ARCOUNT: 0
-            // Question section: compressed QNAME pointer (e.g., pointing elsewhere)
-            0xC0, 0x30, // Compression pointer (to offset 48, doesn't matter for this test)
-            0x00, 0x01, // QTYPE: A (high byte 0x00 - this triggered the bug!)
-            0x00, 0x01, // QCLASS: IN
-            // Answer section
-            0xC0, 0x0C, // Name: compression pointer to offset 12
-            0x00, 0x01, // TYPE: A
-            0x00, 0x01, // CLASS: IN
-            0x00, 0x00, 0x01, 0x2C, // TTL: 300 seconds
-            0x00, 0x04, // RDLENGTH: 4 bytes
-            0x01, 0x02, 0x03, 0x04, // RDATA: IP 1.2.3.4
-        ];
-        let ips = parse_ips_from_response(&response);
-        assert_eq!(ips, vec![IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4))]);
-    }
-
-    #[test]
-    fn test_parse_ttl_with_compressed_qname() {
-        // Same packet structure as above, testing TTL extraction
-        #[rustfmt::skip]
-        let response = [
-            // Header (12 bytes)
-            0x00, 0x01, // Transaction ID
-            0x81, 0x80, // Flags
-            0x00, 0x01, // QDCOUNT: 1
-            0x00, 0x01, // ANCOUNT: 1
-            0x00, 0x00, // NSCOUNT: 0
-            0x00, 0x00, // ARCOUNT: 0
-            // Question section: compressed QNAME pointer
-            0xC0, 0x30, // Compression pointer
-            0x00, 0x01, // QTYPE: A (high byte 0x00)
-            0x00, 0x01, // QCLASS: IN
-            // Answer section
-            0xC0, 0x0C, // Name: compression pointer
-            0x00, 0x01, // TYPE: A
-            0x00, 0x01, // CLASS: IN
-            0x00, 0x00, 0x01, 0x2C, // TTL: 300 seconds (0x12C)
-            0x00, 0x04, // RDLENGTH: 4 bytes
-            0x01, 0x02, 0x03, 0x04, // RDATA: IP 1.2.3.4
-        ];
-        let ttl_info = parse_ttl_from_response(&response);
-        assert!(ttl_info.is_some());
-        assert_eq!(ttl_info.unwrap().ttl, 300);
     }
 
     #[test]
@@ -773,28 +574,6 @@ mod tests {
         ];
         let ips = parse_ips_from_response(&response);
         assert_eq!(ips, vec![IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8))]);
-    }
-
-    #[test]
-    fn test_skip_dns_name_uncompressed() {
-        // "example.com" followed by QTYPE
-        let packet = [
-            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
-            0x03, b'c', b'o', b'm',
-            0x00, // Null terminator
-            0x00, 0x01, // QTYPE (should be at position 13)
-        ];
-        assert_eq!(skip_dns_name(&packet, 0), Some(13));
-    }
-
-    #[test]
-    fn test_skip_dns_name_compressed() {
-        // Compression pointer followed by QTYPE
-        let packet = [
-            0xC0, 0x20, // Compression pointer
-            0x00, 0x01, // QTYPE (should be at position 2)
-        ];
-        assert_eq!(skip_dns_name(&packet, 0), Some(2));
     }
 
     #[test]
@@ -923,134 +702,5 @@ mod tests {
         // Packet too short to have flags
         let response = [0x00, 0x01];
         assert!(!is_truncated(&response));
-    }
-
-    #[test]
-    fn test_decompress_dns_name_uncompressed() {
-        // "example.com" starting at offset 0
-        let packet = [
-            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
-            0x03, b'c', b'o', b'm',
-            0x00, // Null terminator
-        ];
-        let result = decompress_dns_name(&packet, 0);
-        assert_eq!(result, Some(("example.com".to_string(), 13)));
-    }
-
-    #[test]
-    fn test_decompress_dns_name_with_pointer() {
-        // Packet where name at offset 20 points back to "example.com" at offset 0
-        #[rustfmt::skip]
-        let packet = [
-            // Offset 0-12: "example.com"
-            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
-            0x03, b'c', b'o', b'm',
-            0x00,
-            // Offset 13-19: padding
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            // Offset 20-21: compression pointer to offset 0
-            0xC0, 0x00,
-        ];
-        let result = decompress_dns_name(&packet, 20);
-        assert_eq!(result, Some(("example.com".to_string(), 2)));
-    }
-
-    #[test]
-    fn test_decompress_dns_name_labels_then_pointer() {
-        // "sub" followed by pointer to "example.com" -> "sub.example.com"
-        #[rustfmt::skip]
-        let packet = [
-            // Offset 0-12: "example.com"
-            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
-            0x03, b'c', b'o', b'm',
-            0x00,
-            // Offset 13-17: "sub" + pointer to offset 0
-            0x03, b's', b'u', b'b',
-            0xC0, 0x00,
-        ];
-        let result = decompress_dns_name(&packet, 13);
-        assert_eq!(result, Some(("sub.example.com".to_string(), 6)));
-    }
-
-    #[test]
-    fn test_decompress_dns_name_chained_pointers() {
-        // Pointer chain: offset 20 -> offset 13 -> offset 0
-        #[rustfmt::skip]
-        let packet = [
-            // Offset 0-12: "example.com"
-            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
-            0x03, b'c', b'o', b'm',
-            0x00,
-            // Offset 13-17: "sub" + pointer to offset 0
-            0x03, b's', b'u', b'b',
-            0xC0, 0x00,
-            // Offset 19: padding
-            0x00,
-            // Offset 20-21: pointer to offset 13
-            0xC0, 0x0D,
-        ];
-        let result = decompress_dns_name(&packet, 20);
-        assert_eq!(result, Some(("sub.example.com".to_string(), 2)));
-    }
-
-    #[test]
-    fn test_decompress_dns_name_invalid_pointer() {
-        // Pointer pointing beyond packet
-        let packet = [0xC0, 0xFF];
-        assert_eq!(decompress_dns_name(&packet, 0), None);
-    }
-
-    #[test]
-    fn test_parse_domain_from_query_compressed() {
-        // DNS query with compressed QNAME pointing to offset 20 where "example.com" is stored
-        #[rustfmt::skip]
-        let query = [
-            // Header (12 bytes)
-            0x00, 0x01, // Transaction ID
-            0x01, 0x00, // Flags: standard query
-            0x00, 0x01, // QDCOUNT: 1
-            0x00, 0x00, // ANCOUNT: 0
-            0x00, 0x00, // NSCOUNT: 0
-            0x00, 0x00, // ARCOUNT: 0
-            // Question section: compression pointer to offset 20
-            0xC0, 0x14, // Pointer to offset 20 (0x14 = 20)
-            0x00, 0x01, // QTYPE: A
-            0x00, 0x01, // QCLASS: IN
-            // Offset 18-19: padding to align
-            0x00, 0x00,
-            // Offset 20-32: "example.com"
-            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
-            0x03, b'c', b'o', b'm',
-            0x00,
-        ];
-        let domain = parse_domain_from_query(&query);
-        assert_eq!(domain, Some("example.com".to_string()));
-    }
-
-    #[test]
-    fn test_parse_qtype_from_query_compressed() {
-        // DNS query with compressed QNAME
-        #[rustfmt::skip]
-        let query = [
-            // Header (12 bytes)
-            0x00, 0x01, // Transaction ID
-            0x01, 0x00, // Flags
-            0x00, 0x01, // QDCOUNT: 1
-            0x00, 0x00, // ANCOUNT: 0
-            0x00, 0x00, // NSCOUNT: 0
-            0x00, 0x00, // ARCOUNT: 0
-            // Question section: compression pointer
-            0xC0, 0x14, // Pointer to offset 20
-            0x00, 0x1C, // QTYPE: AAAA (28 = 0x1C)
-            0x00, 0x01, // QCLASS: IN
-            // Padding
-            0x00, 0x00,
-            // Offset 20: "example.com"
-            0x07, b'e', b'x', b'a', b'm', b'p', b'l', b'e',
-            0x03, b'c', b'o', b'm',
-            0x00,
-        ];
-        let qtype = parse_qtype_from_query(&query);
-        assert_eq!(qtype, Some(28)); // AAAA
     }
 }

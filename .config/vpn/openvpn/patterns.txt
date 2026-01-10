@@ -3,5 +3,5 @@
 youtube
 google
 telegram
-discord
 slack
+apple

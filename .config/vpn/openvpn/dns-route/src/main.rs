@@ -1,11 +1,13 @@
 mod cache;
 mod dns;
+mod logging;
 mod matcher;
 mod resolver;
 mod route_store;
 mod routes;
 mod upstream;
 
+use std::io::IsTerminal;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -15,6 +17,8 @@ use clap::Parser;
 use tokio::signal;
 use tokio::signal::unix::{signal as unix_signal, SignalKind};
 use tracing::{error, info};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Parser, Debug)]
 #[command(name = "dns-route")]
@@ -55,13 +59,6 @@ struct Args {
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(tracing::Level::INFO.into()),
-        )
-        .init();
-
     let args = Args::parse();
 
     // Ensure runtime directory exists
@@ -70,6 +67,29 @@ async fn main() -> Result<()> {
 
     let pid_file = args.runtime_dir.join("dns-route.pid");
     let db_path = args.runtime_dir.join("dns-route.db");
+    let log_path = args.runtime_dir.join("dns-route.log");
+
+    // Initialize logging - stdout only when interactive, always use file
+    let env_filter = tracing_subscriber::EnvFilter::from_default_env()
+        .add_directive(tracing::Level::INFO.into());
+
+    let file_writer = logging::RotatingFileWriterFactory::new(log_path.clone())
+        .with_context(|| format!("Failed to create log file: {:?}", log_path))?;
+
+    let file_layer = tracing_subscriber::fmt::layer()
+        .with_writer(file_writer)
+        .with_ansi(false);
+
+    let registry = tracing_subscriber::registry()
+        .with(env_filter)
+        .with(file_layer);
+
+    if std::io::stdout().is_terminal() {
+        let stdout_layer = tracing_subscriber::fmt::layer().with_writer(std::io::stdout);
+        registry.with(stdout_layer).init();
+    } else {
+        registry.init();
+    }
 
     let pid = std::process::id();
     std::fs::write(&pid_file, pid.to_string())
@@ -92,6 +112,7 @@ async fn main() -> Result<()> {
     info!("DNS for matched: {:?}", matched_dns_servers);
     info!("DNS for non-matched: {:?}", non_matched_dns_servers);
     info!("Route store database: {:?}", db_path);
+    info!("Log file: {:?}", log_path);
 
     let route_manager = Arc::new(
         routes::RouteManager::new(
