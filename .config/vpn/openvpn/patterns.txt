@@ -1,7 +1,0 @@
-.by
-.ru
-youtube
-google
-telegram
-slack
-apple
