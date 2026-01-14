@@ -1,0 +1,552 @@
+# vim: set ft=bash :
+# direnvrc - Neovim project configuration for direnv
+#
+# Usage in project .envrc:
+#   source ~/.config/nvim/scripts/direnvrc
+#   use_nvim_project myproject
+#   use_nvim_python 3.11           # or ./venv or docker:image
+#   use_nvim_node 20               # or ./package.json or docker:image
+#   use_nvim_deno                  # for Deno projects
+#   use_nvim_tags
+
+# Configuration
+XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+NVIM_HELPERS_BASE="$XDG_DATA_HOME/nvim-helpers"
+
+# Internal state (set by use_nvim_project)
+NVIM_PROJECT_NAME=""
+NVIM_PROJECT_DIR=""
+_NVIM_TAG_DIRS=""
+_NVIM_PYTHONPATH=""
+
+# Python tools to install
+_NVIM_PYTHON_PACKAGES=(
+    "python-lsp-server"
+    "black"
+    "ruff"
+    "mypy"
+    "isort"
+    "flake8"
+    "pyflakes"
+    "pylint"
+    "sqlparse"
+)
+
+# Node packages to install globally
+_NVIM_NODE_PACKAGES=(
+    "typescript-language-server"
+    "typescript-formatter"
+    "typescript"
+    "prettier-pnp"
+)
+
+# Logging
+_nvim_log() {
+    echo "[nvim] $*" >&2
+}
+
+_nvim_error() {
+    echo "[nvim] ERROR: $*" >&2
+    return 1
+}
+
+# Ensure pyenv is available
+_nvim_ensure_pyenv() {
+    export PYENV_ROOT="${PYENV_ROOT:-$HOME/.pyenv}"
+    if [[ ! -d "$PYENV_ROOT" ]]; then
+        _nvim_log "Installing pyenv..."
+        git clone https://github.com/pyenv/pyenv.git "$PYENV_ROOT"
+    fi
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init -)"
+}
+
+# Ensure nvm is available
+_nvim_ensure_nvm() {
+    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+    if [[ ! -d "$NVM_DIR" ]]; then
+        _nvim_log "Installing nvm..."
+        git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+        cd "$NVM_DIR"
+        git checkout "$(git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1))"
+        cd - >/dev/null
+    fi
+    \. "$NVM_DIR/nvm.sh"
+}
+
+# Set up project - MUST be called first
+use_nvim_project() {
+    local name="$1"
+    if [[ -z "$name" ]]; then
+        _nvim_error "use_nvim_project requires a project name"
+        return 1
+    fi
+
+    NVIM_PROJECT_NAME="$name"
+    NVIM_PROJECT_DIR="$NVIM_HELPERS_BASE/projects/$name"
+
+    mkdir -p "$NVIM_PROJECT_DIR"
+    _nvim_log "Project: $name -> $NVIM_PROJECT_DIR"
+}
+
+# Set up Python environment
+# Args: version | venv_path | docker:image
+use_nvim_python() {
+    local arg="$1"
+    if [[ -z "$NVIM_PROJECT_NAME" ]]; then
+        _nvim_error "use_nvim_project must be called before use_nvim_python"
+        return 1
+    fi
+    if [[ -z "$arg" ]]; then
+        _nvim_error "use_nvim_python requires an argument (version, venv path, or docker:image)"
+        return 1
+    fi
+
+    local python_version=""
+    local deps_pythonpath=""
+
+    # Detect argument type
+    if [[ "$arg" == docker:* ]]; then
+        # Docker image
+        _nvim_python_from_docker "${arg#docker:}"
+        python_version=$(_nvim_get_python_version_file)
+        deps_pythonpath="$NVIM_PROJECT_DIR/python-deps"
+    elif [[ "$arg" == */* ]]; then
+        # Venv path
+        _nvim_python_from_venv "$arg"
+        python_version=$(_nvim_get_python_version_file)
+        deps_pythonpath=$(_nvim_get_pythonpath_file)
+    else
+        # Version string
+        python_version="$arg"
+    fi
+
+    # Set up tool venv
+    _nvim_setup_python_tools "$python_version"
+
+    # Export PATH and PYTHONPATH
+    local tools_bin="$NVIM_PROJECT_DIR/venv/bin"
+    PATH_add "$tools_bin"
+
+    if [[ -n "$deps_pythonpath" ]]; then
+        _NVIM_PYTHONPATH="$deps_pythonpath"
+        _NVIM_TAG_DIRS="${_NVIM_TAG_DIRS:+$_NVIM_TAG_DIRS:}$deps_pythonpath"
+        export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$deps_pythonpath"
+    fi
+
+    _nvim_log "Python $python_version tools at $tools_bin"
+}
+
+# Extract Python deps from docker image
+_nvim_python_from_docker() {
+    local image="$1"
+    local digest_file="$NVIM_PROJECT_DIR/docker-digest"
+    local deps_dir="$NVIM_PROJECT_DIR/python-deps"
+    local version_file="$NVIM_PROJECT_DIR/python-version"
+
+    # Check if image has changed
+    local image_id
+    image_id=$(docker images --filter=reference="$image" --format='{{.ID}}' | head -1)
+    if [[ -z "$image_id" ]]; then
+        _nvim_error "Failed to find docker image: $image"
+        return 1
+    fi
+    local current_digest
+    current_digest=$(docker image inspect --format='{{.Id}}' "$image_id" 2>/dev/null) || {
+        _nvim_error "Failed to inspect docker image: $image"
+        return 1
+    }
+    local cached_digest
+    cached_digest=$(cat "$digest_file" 2>/dev/null || echo "")
+
+    if [[ "$current_digest" == "$cached_digest" ]] && [[ -d "$deps_dir" ]]; then
+        _nvim_log "Docker deps up to date (digest unchanged)"
+        return 0
+    fi
+
+    _nvim_log "Extracting Python deps from docker image: $image"
+
+    # Get Python version from container
+    local py_version
+    py_version=$(docker run --rm "$image" python -c 'import sys; print(sys.version.split()[0])') || {
+        _nvim_error "Failed to get Python version from container"
+        return 1
+    }
+    echo "$py_version" > "$version_file"
+    _nvim_log "Python version in container: $py_version"
+
+    # Extract requirements
+    local reqs_file
+    reqs_file=$(mktemp)
+    docker run --rm "$image" pip freeze  > "$reqs_file" || {
+        _nvim_error "Failed to run pip freeze in container"
+        rm -f "$reqs_file"
+        return 1
+    }
+
+    # Ensure pyenv has the right Python version
+    _nvim_ensure_pyenv
+    pyenv install -s "$py_version"
+    local python_bin
+    python_bin="$(pyenv prefix "$py_version")/bin/python"
+
+    # Install deps to target directory
+    rm -rf "$deps_dir"
+    mkdir -p "$deps_dir"
+
+    # Split requirements into git-based and regular
+    local git_reqs_file regular_reqs_file
+    git_reqs_file=$(mktemp)
+    regular_reqs_file=$(mktemp)
+    grep -E '^git\+|@ git\+' "$reqs_file" > "$git_reqs_file" 2>/dev/null || true
+    grep -vE '^git\+|@ git\+' "$reqs_file" > "$regular_reqs_file" 2>/dev/null || true
+
+    # Copy git-based packages from docker container
+    if [[ -s "$git_reqs_file" ]]; then
+        _nvim_log "Copying $(wc -l < "$git_reqs_file" | tr -d ' ') git-based packages from container..."
+
+        # Get site-packages path from container
+        local container_site_packages
+        container_site_packages=$(docker run --rm "$image" python -c 'import site; print(site.getsitepackages()[0])')
+
+        # Create a temporary container to copy from
+        local container_id
+        container_id=$(docker create "$image")
+
+        while IFS= read -r line; do
+            # Extract package name from git URL (e.g., "pkg @ git+..." or "git+.../pkg.git@...")
+            local pkg_name
+            pkg_name=$(echo "$line" | sed -E 's/^([^@[:space:]]+)[[:space:]]*@.*/\1/' | sed -E 's/.*\/([^\/]+)(\.git)?@.*/\1/' | tr '-' '_')
+
+            if [[ -n "$pkg_name" ]]; then
+                # Try to copy the package directory
+                docker cp "$container_id:$container_site_packages/$pkg_name" "$deps_dir/" 2>/dev/null && \
+                    _nvim_log "Copied: $pkg_name" || \
+                    _nvim_log "Warning: Could not copy $pkg_name"
+                # Also copy dist-info if exists
+                docker cp "$container_id:$container_site_packages/${pkg_name}-"*".dist-info" "$deps_dir/" 2>/dev/null || true
+            fi
+        done < "$git_reqs_file"
+
+        docker rm "$container_id" >/dev/null
+    fi
+
+    # Install regular deps with --target, graceful fallback
+    local failed_deps=()
+    if [[ -s "$regular_reqs_file" ]]; then
+        "$python_bin" -m pip install --target "$deps_dir" -r "$regular_reqs_file" --quiet 2>/dev/null || {
+            _nvim_log "Warning: Bulk install failed, trying one by one..."
+            while IFS= read -r dep; do
+                [[ -z "$dep" ]] && continue
+                "$python_bin" -m pip install --target "$deps_dir" "$dep" --quiet 2>/dev/null || \
+                    failed_deps+=("$dep")
+            done < "$regular_reqs_file"
+        }
+    fi
+
+    # Report all failures
+    if [[ ${#failed_deps[@]} -gt 0 ]]; then
+        _nvim_log "Skipped ${#failed_deps[@]} deps (platform incompatible):"
+        for dep in "${failed_deps[@]}"; do
+            _nvim_log "  - $dep"
+        done
+    fi
+
+    local pkg_count
+    pkg_count=$(wc -l < "$reqs_file" 2>/dev/null || echo "?")
+    rm -f "$reqs_file" "$git_reqs_file" "$regular_reqs_file"
+    echo "$current_digest" > "$digest_file"
+    _nvim_log "Processed $pkg_count packages to $deps_dir"
+}
+
+# Use existing venv for PYTHONPATH
+_nvim_python_from_venv() {
+    local venv_path="$1"
+    local version_file="$NVIM_PROJECT_DIR/python-version"
+    local pythonpath_file="$NVIM_PROJECT_DIR/pythonpath"
+
+    if [[ ! -d "$venv_path" ]]; then
+        _nvim_error "Venv not found: $venv_path"
+        return 1
+    fi
+
+    # Get Python version
+    local py_version
+    py_version=$("$venv_path/bin/python" -c 'import sys; print(sys.version.split()[0])')
+    echo "$py_version" > "$version_file"
+
+    # Get site-packages paths
+    "$venv_path/bin/python" -c 'import sys; print(":".join(p for p in sys.path if "site-packages" in p or "src" in p))' > "$pythonpath_file"
+
+    _nvim_log "Using venv at $venv_path (Python $py_version)"
+}
+
+_nvim_get_python_version_file() {
+    cat "$NVIM_PROJECT_DIR/python-version" 2>/dev/null
+}
+
+_nvim_get_pythonpath_file() {
+    cat "$NVIM_PROJECT_DIR/pythonpath" 2>/dev/null
+}
+
+# Extract Node version from package.json engines field
+_nvim_node_from_package_json() {
+    local pkg_json="$1"
+
+    if [[ ! -f "$pkg_json" ]]; then
+        _nvim_error "package.json not found: $pkg_json"
+        return 1
+    fi
+
+    local engines_node
+    engines_node=$(jq -r '.engines.node // empty' "$pkg_json" 2>/dev/null)
+
+    if [[ -z "$engines_node" ]]; then
+        _nvim_error "No engines.node field in $pkg_json"
+        return 1
+    fi
+
+    # Extract major version from semver range (e.g., ">=18.0.0" -> "18", "^20" -> "20")
+    local version
+    version=$(echo "$engines_node" | sed -E 's/[^0-9]*([0-9]+).*/\1/')
+
+    echo "$version"
+    _nvim_log "Detected Node $version from $pkg_json"
+}
+
+# Extract Node version from docker image
+_nvim_node_from_docker() {
+    local image="$1"
+    local digest_file="$NVIM_PROJECT_DIR/node-docker-digest"
+    local version_file="$NVIM_PROJECT_DIR/node-version"
+
+    # Check if image has changed
+    local image_id
+    image_id=$(docker images --filter=reference="$image" --format='{{.ID}}' | head -1)
+    if [[ -z "$image_id" ]]; then
+        _nvim_error "Failed to find docker image: $image"
+        return 1
+    fi
+    local current_digest
+    current_digest=$(docker image inspect --format='{{.Id}}' "$image_id" 2>/dev/null) || {
+        _nvim_error "Failed to inspect docker image: $image"
+        return 1
+    }
+    local cached_digest
+    cached_digest=$(cat "$digest_file" 2>/dev/null || echo "")
+
+    if [[ "$current_digest" == "$cached_digest" ]] && [[ -f "$version_file" ]]; then
+        _nvim_log "Docker Node version cached (digest unchanged)"
+        return 0
+    fi
+
+    _nvim_log "Extracting Node version from docker image: $image"
+
+    # Get Node version from container (strips leading 'v')
+    local node_version
+    node_version=$(docker run --rm "$image" node --version 2>/dev/null | sed 's/^v//') || {
+        _nvim_error "Failed to get Node version from container"
+        return 1
+    }
+
+    # Extract major version
+    node_version=$(echo "$node_version" | cut -d. -f1)
+
+    echo "$node_version" > "$version_file"
+    echo "$current_digest" > "$digest_file"
+    _nvim_log "Node version in container: $node_version"
+}
+
+_nvim_get_node_version_file() {
+    cat "$NVIM_PROJECT_DIR/node-version" 2>/dev/null
+}
+
+# Set up Python tools venv
+_nvim_setup_python_tools() {
+    local py_version="$1"
+    local venv_dir="$NVIM_PROJECT_DIR/venv"
+    local marker_file="$venv_dir/.nvim-tools-installed"
+
+    # Check if already set up
+    if [[ -f "$marker_file" ]]; then
+        local cached_version
+        cached_version=$(cat "$marker_file")
+        if [[ "$cached_version" == "$py_version" ]]; then
+            return 0
+        fi
+    fi
+
+    _nvim_log "Setting up Python $py_version tools..."
+    _nvim_ensure_pyenv
+
+    # Install Python version if needed
+    pyenv install -s "$py_version"
+    local python_bin
+    python_bin="$(pyenv prefix "$py_version")/bin/python"
+
+    # Create venv
+    rm -rf "$venv_dir"
+    "$python_bin" -m venv "$venv_dir"
+
+    # Install tools
+    "$venv_dir/bin/pip" install --upgrade pip --quiet
+    "$venv_dir/bin/pip" install --quiet "${_NVIM_PYTHON_PACKAGES[@]}"
+
+    echo "$py_version" > "$marker_file"
+    _nvim_log "Installed Python tools: ${_NVIM_PYTHON_PACKAGES[*]}"
+}
+
+# Set up Node environment
+# Args: version | path/to/package.json | docker:image
+use_nvim_node() {
+    local arg="${1:-20}"
+    if [[ -z "$NVIM_PROJECT_NAME" ]]; then
+        _nvim_error "use_nvim_project must be called before use_nvim_node"
+        return 1
+    fi
+
+    local node_version=""
+
+    # Detect argument type
+    if [[ "$arg" == docker:* ]]; then
+        # Docker image
+        _nvim_node_from_docker "${arg#docker:}"
+        node_version=$(_nvim_get_node_version_file)
+    elif [[ "$arg" == *package.json ]] || [[ "$arg" == */* && -f "$arg" ]]; then
+        # Path to package.json
+        node_version=$(_nvim_node_from_package_json "$arg")
+    else
+        # Version string
+        node_version="$arg"
+    fi
+
+    if [[ -z "$node_version" ]]; then
+        _nvim_error "Could not determine Node version"
+        return 1
+    fi
+
+    local node_dir="$NVIM_PROJECT_DIR/node"
+    local version_file="$node_dir/version"
+    local binpath_file="$node_dir/binpath"
+
+    _nvim_ensure_nvm
+
+    # Check if already set up with this version
+    if [[ -f "$version_file" ]] && [[ -f "$binpath_file" ]]; then
+        local cached_version
+        cached_version=$(cat "$version_file")
+        if [[ "$cached_version" == "$node_version" ]]; then
+            local node_bin_dir
+            node_bin_dir=$(cat "$binpath_file")
+            if [[ -d "$node_bin_dir" ]]; then
+                PATH_add "$node_bin_dir"
+                _nvim_log "Node $node_version tools at $node_bin_dir"
+                return 0
+            fi
+        fi
+    fi
+
+    _nvim_log "Setting up Node $node_version tools..."
+
+    # Install Node version if needed
+    nvm install "$node_version" >/dev/null 2>&1 || true
+    nvm use "$node_version" >/dev/null
+
+    # Install packages
+    local node_bin_dir
+    node_bin_dir=$(dirname "$(nvm which "$node_version")")
+    npm install -g "${_NVIM_NODE_PACKAGES[@]}" --silent
+
+    mkdir -p "$node_dir"
+    echo "$node_version" > "$version_file"
+    echo "$node_bin_dir" > "$binpath_file"
+    PATH_add "$node_bin_dir"
+
+    _nvim_log "Installed Node tools: ${_NVIM_NODE_PACKAGES[*]}"
+}
+
+# Set up Deno environment
+use_nvim_deno() {
+    if [[ -z "$NVIM_PROJECT_NAME" ]]; then
+        _nvim_error "use_nvim_project must be called before use_nvim_deno"
+        return 1
+    fi
+
+    # Check if deno is installed
+    if ! command -v deno &>/dev/null; then
+        _nvim_log "Installing Deno..."
+        curl -fsSL https://deno.land/install.sh | sh
+        export DENO_INSTALL="$HOME/.deno"
+        export PATH="$DENO_INSTALL/bin:$PATH"
+    fi
+
+    # Enable Deno LSP for this project
+    export NVIM_LSP_DENO=1
+
+    _nvim_log "Deno enabled ($(deno --version | head -1))"
+}
+
+# Generate ctags for dependencies
+use_nvim_tags() {
+    if [[ -z "$NVIM_PROJECT_NAME" ]]; then
+        _nvim_error "use_nvim_project must be called before use_nvim_tags"
+        return 1
+    fi
+
+    local tag_dirs="$_NVIM_TAG_DIRS"
+    if [[ -z "$tag_dirs" ]]; then
+        _nvim_log "No tag directories to process"
+        return 0
+    fi
+
+    local fingerprint_file="$NVIM_PROJECT_DIR/tags-fingerprint"
+
+    # Generate fingerprint from directory mtimes and file counts
+    local current_fingerprint
+    current_fingerprint=$(
+        IFS=':'
+        for dir in $tag_dirs; do
+            if [[ -d "$dir" ]]; then
+                stat -f "%m" "$dir" 2>/dev/null
+                find "$dir" -maxdepth 2 -name "*.py" -type f 2>/dev/null | wc -l
+            fi
+        done | md5
+    )
+
+    local cached_fingerprint
+    cached_fingerprint=$(cat "$fingerprint_file" 2>/dev/null || echo "")
+
+    if [[ "$current_fingerprint" == "$cached_fingerprint" ]]; then
+        _nvim_log "Tags up to date (fingerprint unchanged)"
+        export TAG_DIRS="$tag_dirs"
+        return 0
+    fi
+
+    export TAG_DIRS="$tag_dirs"
+
+    # Generate tags in background (don't block direnv)
+    (
+        IFS=':'
+        for dir in $tag_dirs; do
+            if [[ -d "$dir" ]] && command -v ctags >/dev/null 2>&1; then
+                _nvim_log "Generating tags for $dir"
+                pushd "$dir" >/dev/null
+                ctags -R \
+                    --languages="Python,Rust,TypeScript,JavaScript" \
+                    --exclude=tests \
+                    --exclude=build \
+                    --exclude=dist \
+                    --exclude="*.min.js" \
+                    2>/dev/null || true
+                # Remove lines starting with whitespace (malformed entries)
+                [[ -f tags ]] && sed -i '' '/^[[:space:]]/d' tags 2>/dev/null || true
+                popd >/dev/null
+            fi
+        done
+        # Save fingerprint after successful generation
+        echo "$current_fingerprint" > "$fingerprint_file"
+    ) &
+
+    _nvim_log "TAG_DIRS=$tag_dirs"
+}

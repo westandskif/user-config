@@ -61,6 +61,33 @@ function M.auto_import(name)
   }))
 end
 
+local function on_lint_finish(callback)
+    local poll = require("fidget.poll")
+    local lint = require("lint")
+
+    local poller = poll.Poller {
+        name = "Linting",
+        poll = function()
+            local linters = lint.get_running()
+            if #linters > 0 then
+                return true
+            else
+                pcall(callback)
+                return false
+            end
+        end
+    }
+
+    poller:start_polling(25)
+end
+local function try_lint(prg)
+    local callback = function()
+        vim.diagnostic.setloclist()
+    end
+    require("lint").try_lint(prg)
+    on_lint_finish(callback)
+end
+
 -- Python-specific settings and keymaps
 function M.setup()
     local python_group = vim.api.nvim_create_augroup('PythonSpecifics', { clear = true })
@@ -74,13 +101,13 @@ function M.setup()
             -- Quick lint with ruff
             vim.keymap.set('n', '<localleader>lmq', function()
                 vim.diagnostic.reset()
-                require('lint').try_lint('ruff')
+                try_lint('ruff')
             end, opts)
 
             -- Lint with mypy
             vim.keymap.set('n', '<localleader>lma', function()
                 vim.diagnostic.reset()
-                require('lint').try_lint('mypy')
+                try_lint('mypy')
             end, opts)
 
             -- Auto import

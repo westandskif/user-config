@@ -4,32 +4,6 @@ vim.diagnostic.config({
   virtual_text = true,
   severity_sort = true,
 })
-local function on_lint_finish(callback)
-    local poll = require("fidget.poll")
-    local lint = require("lint")
-
-    local poller = poll.Poller {
-        name = "Linting",
-        poll = function()
-            local linters = lint.get_running()
-            if #linters > 0 then
-                return true
-            else
-                pcall(callback)
-                return false
-            end
-        end
-    }
-
-    poller:start_polling(25)
-end
-local function try_lint(prg)
-    local callback = function()
-        vim.diagnostic.setloclist()
-    end
-    require("lint").try_lint(prg)
-    on_lint_finish(callback)
-end
 
 local cmp = require'cmp'
 
