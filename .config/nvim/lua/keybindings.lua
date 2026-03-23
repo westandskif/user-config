@@ -96,7 +96,7 @@ vim.g.which_key_map.v = {
   R = "Restore session",
 }
 
-map("n", "<leader>ve", "<cmd>tabnew ~/.config/nvim/config<CR>", { noremap = true, silent = true })
+map("n", "<leader>ve", "<cmd>tabnew ~/.config/nvim/lua<CR>", { noremap = true, silent = true })
 map("n", "<leader>vs", "<cmd>source ~/.config/nvim/init.vim<CR>", { noremap = true, silent = true })
 map("n", "<leader>vc", "<cmd>mksession! .s.vim<CR>", { noremap = true, silent = true })
 map("n", "<leader>vq", "<cmd>mksession! .s.vim<CR><cmd>qa<CR>", { noremap = true, silent = true })

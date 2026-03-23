@@ -45,10 +45,13 @@ require("lazy").setup({
       require("nvim-treesitter").setup({
         ensure_installed = { "vim", "vimdoc", "rust", "python", "lua" },
       })
-      -- Enable treesitter highlighting
+      -- Enable treesitter highlighting and indentation
       vim.api.nvim_create_autocmd("FileType", {
         callback = function()
           pcall(vim.treesitter.start)
+          pcall(function()
+            vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end)
         end,
       })
     end,
@@ -73,6 +76,7 @@ require("lazy").setup({
           javascript = { "deno_fmt" },
           typescript = { "deno_fmt" },
           typescriptreact = { "deno_fmt" },
+          rust = { "rustfmt" },
         },
 
         formatters = {

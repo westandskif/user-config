@@ -6,7 +6,11 @@ vim.opt.spellcapcheck = ""
 -- :syn match myExCapitalWords +\\<[A-Z]\\w*\\>+ contains=@NoSpell
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "*",
-  command = "syntax spell toplevel",
+  callback = function(args)
+    if not vim.treesitter.highlighter.active[args.buf] then
+      vim.cmd("syntax spell toplevel")
+    end
+  end,
 })
 vim.opt.spellfile = vim.fn.stdpath("config") .. "/spell/en.utf-8.add"
 
