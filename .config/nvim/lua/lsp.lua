@@ -154,3 +154,9 @@ vim.lsp.config('ccls', {
     capabilities = capabilities,
 })
 vim.lsp.enable('ccls')
+
+vim.api.nvim_create_user_command('LspRestart', function()
+  for _, client in ipairs(vim.lsp.get_clients()) do
+    client:stop()
+  end
+end, {})
