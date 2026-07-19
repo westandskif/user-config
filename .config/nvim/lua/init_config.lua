@@ -59,6 +59,14 @@ vim.opt.clipboard = "unnamedplus"
 -- Netrw settings
 vim.g.netrw_altv = 1
 vim.g.netrw_alto = 1
+vim.g.netrw_liststyle = 1 -- long listing (size, time, name); i cycles thin/long/wide/tree
+vim.g.netrw_sort_by = "name" -- name | time | size | exten; s cycles
+-- When sorting by name: directories first, then files alphabetically.
+-- Note: do not use [\/]$ — long listing pads with spaces (not tabs), so $ never matches.
+vim.g.netrw_sort_sequence = [[[\/],*]]
+vim.g.netrw_sizestyle = "h" -- human-readable (5k/4m); "H" = 1024-base (5K/4M), "b" = bytes
+-- Long listing pads filenames to this width (default 32). Dynamic = fit longest name in dir.
+vim.g.netrw_dynamic_maxfilenamelen = 1
 
 -- Tagbar settings
 vim.g.tagbar_foldlevel = 0

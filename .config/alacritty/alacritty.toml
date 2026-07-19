@@ -22,6 +22,10 @@
 # background = "#000000"
 # foreground = "#f8f8f2"
 
+[bell]
+animation = "EaseOutExpo"
+duration = 20
+
 [window]
 decorations = "Full"
 startup_mode = "Maximized"

@@ -37,3 +37,8 @@
 	line-numbers = true
 	side-by-side = false
 	keep-plus-minus-markers = true
+[filter "lfs"]
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
